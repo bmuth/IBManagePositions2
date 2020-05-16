@@ -1,0 +1,308 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="options" Class="dbOptionsDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Connection Mode="AppSettings" ConnectionString="Data Source=(LocalDB)\v11.0;AttachDbFilename=E:\Finance\Database\options.mdf;Integrated Security=True;Connect Timeout=30" SettingsObjectName="IBManagePositions.Properties.Settings" SettingsPropertyName="optionsConnectionString" Provider="System.Data.SqlClient" />
+  <Table Name="dbo.[Order]" Member="Orders">
+    <Type Name="Order">
+      <Column Name="OrderId" Type="System.Int32" DbType="Int NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="PermId" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="OrderDate" Type="System.DateTime" DbType="Date NOT NULL" CanBeNull="false" />
+      <Column Name="Commission" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="MinCommission" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="MaxCommission" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" DbType="NVarChar(20)" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Trade" Member="Trades">
+    <Type Name="Trade">
+      <Column Name="TradeId" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="TradeGroup" Type="System.String" DbType="Char(3) NOT NULL" CanBeNull="false" />
+      <Column Name="TradeType" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Ticker" Type="System.String" DbType="VarChar(10) NOT NULL" CanBeNull="false" />
+      <Column Name="IfClosed" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Premium" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="Commissions" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="OpenDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="ClosedDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Delta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Theta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="TotalProfitLoss" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="TotalProfitLossTimeStamp" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="TodayProfitLoss" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="TodayProfitLossTimeStamp" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="YesterdayProfitLoss" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="YesterdayProfitLossTimeStamp" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="ProfitThreshold" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="PriceThreshold" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="PriceThresholdAboveBelow" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="EmailNotifications" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LastEmail" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Notes" Type="System.String" DbType="VarChar(MAX)" CanBeNull="true" />
+      <Association Name="Trade_Leg" Member="Legs" ThisKey="TradeId" OtherKey="Trade_Id" Type="Leg" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Stock" Member="Stocks">
+    <Type Name="Stock">
+      <Column Name="Ticker" Type="System.String" DbType="VarChar(20) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Company" Type="System.String" DbType="VarChar(100)" CanBeNull="true" />
+      <Column Name="Sector" Type="System.String" DbType="VarChar(40)" CanBeNull="true" />
+      <Column Name="Industry" Type="System.String" DbType="VarChar(40)" CanBeNull="true" />
+      <Column Name="Market" Type="System.String" DbType="VarChar(2)" CanBeNull="true" />
+      <Column Name="DividendStart" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="DividendCommentary" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
+      <Column Name="LastTrade" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="AverageVolume" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="MarketCap" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="PriceEarningRatio" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="EarningsPerShare" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="DividendYield" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="PriceBookRatio" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="SharesOutstanding" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="PayoutRatio" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="TotalCurrentAssets" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="TotalAssets" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="TotalCurrentLiabilities" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="TotalLiabilities" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="LongTermDebt" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="StockholderEquity" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="ATMStrike" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="ATMCallOpenInterest" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="ATMPutOpenInterest" Type="System.Decimal" DbType="Decimal(24,4)" CanBeNull="true" />
+      <Column Name="DailyVolume" Type="System.Decimal" DbType="Decimal(24,2)" CanBeNull="true" />
+      <Column Name="OverrideCode" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="OverrideReason" Type="System.String" DbType="Text" CanBeNull="true" UpdateCheck="Never" />
+      <Column Name="LastUpdateSuccessful" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="[Ex-DividendDate]" Member="Ex_DividendDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="NextEarningsDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="NextEarningsTime" Type="System.String" DbType="VarChar(40)" CanBeNull="true" />
+      <Column Name="AnalystsOpinion" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="NakedOptions" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IVPercentile" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="IVRank" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="PercentBB" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="PriceChange5Day" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="PriceChange10Day" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="PriceChange15Day" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Beta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Exchange" Type="System.String" DbType="VarChar(8) NOT NULL" CanBeNull="false" />
+      <Column Name="PrimExchange" Type="System.String" DbType="VarChar(8)" CanBeNull="true" />
+      <Column Name="SecType" Type="System.String" DbType="VarChar(6) NOT NULL" CanBeNull="false" />
+      <Column Name="FutureExpiry" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Leg" Member="Legs">
+    <Type Name="Leg">
+      <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="Ticker" Type="System.String" DbType="VarChar(10) NOT NULL" CanBeNull="false" />
+      <Column Name="Exchange" Type="System.String" DbType="VarChar(6) NOT NULL" CanBeNull="false" />
+      <Column Name="EquityType" Type="System.String" DbType="Char(3) NOT NULL" CanBeNull="false" />
+      <Column Name="Multiplier" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="LocalSymbol" Type="System.String" DbType="VarChar(22)" CanBeNull="true" />
+      <Column Name="ConId" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="IfClosed" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="IfCall" Type="System.Boolean" DbType="Bit" CanBeNull="true" />
+      <Column Name="IfSell" Type="System.Boolean" DbType="Bit NOT NULL" CanBeNull="false" />
+      <Column Name="Strike" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="Expiry" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="UndPrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="OpenPrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="ClosePrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="NoContracts" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Commissions" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="TotalDelta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="TotalTheta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Gamma" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Vega" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="MyDelta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="MyTheta" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="MyGamma" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="MyVega" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="OpenDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="ClosedDate" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="ProfitLoss" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="ProfitLossTimeStamp" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="TodayProfitLoss" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="TodayProfitLossTimeStamp" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="YesterdayProfitLoss" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="YesterdayProfitLossTimeStamp" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="ProfitThreshold" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="LastEmail" Type="System.DateTime" DbType="DateTime" CanBeNull="true" />
+      <Column Name="EmailNotifications" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="OpenOrderId" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="CloseOrderId" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Trade_Id" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="Trade_Leg" Member="Trade" ThisKey="Trade_Id" OtherKey="TradeId" Type="Trade" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.PriceHistory" Member="PriceHistories">
+    <Type Name="PriceHistory">
+      <Column Name="Ticker" Type="System.String" DbType="VarChar(10) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="PriceDate" Type="System.DateTime" DbType="Date NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="PriceTime" Type="System.TimeSpan" DbType="Time NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="ClosingPrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="OpeningPrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="HighPrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="LowPrice" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="Volume" Type="System.Decimal" DbType="Decimal(18,0)" CanBeNull="true" />
+      <Column Name="WAP" Type="System.Decimal" DbType="Decimal(18,4)" CanBeNull="true" />
+      <Column Name="OpeningIV" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="ClosingIV" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="HighIV" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="LowIV" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="PercentBB" Type="System.Double" DbType="Float" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Function Name="dbo.FetchOrderID" Method="FetchOrderID">
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateLegOrderId" Method="UpdateLegOrderId">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="openorderid" Type="System.Int32" DbType="Int" />
+    <Parameter Name="closeorderid" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateLegProfitLoss" Method="UpdateLegProfitLoss">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="totalprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="totalprofitloss_timestamp" Type="System.DateTime" DbType="DateTime" />
+    <Parameter Name="todayprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="todayprofitloss_timestamp" Type="System.DateTime" DbType="DateTime" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateTradeProfitLoss" Method="UpdateTradeProfitLoss">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="totalprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="totalprofitloss_timestamp" Type="System.DateTime" DbType="DateTime" />
+    <Parameter Name="todayprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="todayprofitloss_timestamp" Type="System.DateTime" DbType="DateTime" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateTradeYesterdayProfitLoss" Method="UpdateTradeYesterdayProfitLoss">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="profitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="profitloss_timestamp" Type="System.DateTime" DbType="DateTime" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateLegYesterdayProfitLoss" Method="UpdateLegYesterdayProfitLoss">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="profitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="profitloss_timestamp" Type="System.DateTime" DbType="DateTime" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateLegUndPrice" Method="UpdateLegUndPrice">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="undprice" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpsertOrder" Method="UpsertOrder">
+    <Parameter Name="orderid" Type="System.Int32" DbType="Int" />
+    <Parameter Name="orderdate" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="commission" Type="System.Double" DbType="Float" />
+    <Parameter Name="mincommission" Type="System.Double" DbType="Float" />
+    <Parameter Name="maxcommission" Type="System.Double" DbType="Float" />
+    <Parameter Name="status" Type="System.String" DbType="NChar(10)" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpdateTrade" Method="UpdateTrade">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="trade_type" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ticker" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="ifclosed" Type="System.Int32" DbType="Int" />
+    <Parameter Name="premium" Type="System.Double" DbType="Float" />
+    <Parameter Name="commissions" Type="System.Double" DbType="Float" />
+    <Parameter Name="open_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="close_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="delta" Type="System.Double" DbType="Float" />
+    <Parameter Name="theta" Type="System.Double" DbType="Float" />
+    <Parameter Name="totalprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="profit_threshold" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="email_notifications" Type="System.Int32" DbType="Int" />
+    <Parameter Name="notes" Type="System.String" DbType="VarChar(MAX)" />
+    <Parameter Name="last_email" Type="System.DateTime" DbType="DateTime" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpsertTrade" Method="UpsertTrade">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="group" Type="System.String" DbType="Char(3)" />
+    <Parameter Name="trade_type" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ticker" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="ifclosed" Type="System.Int32" DbType="Int" />
+    <Parameter Name="premium" Type="System.Double" DbType="Float" />
+    <Parameter Name="commissions" Type="System.Double" DbType="Float" />
+    <Parameter Name="open_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="close_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="delta" Type="System.Double" DbType="Float" />
+    <Parameter Name="theta" Type="System.Double" DbType="Float" />
+    <Parameter Name="totalprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="profit_threshold" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="email_notifications" Type="System.Int32" DbType="Int" />
+    <Parameter Name="notes" Type="System.String" DbType="VarChar(MAX)" />
+    <Parameter Name="last_email" Type="System.DateTime" DbType="DateTime" />
+    <ElementType Name="UpsertTradeResult">
+      <Column Name="TradeId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.InsertTrade" Method="InsertTrade">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="group" Type="System.String" DbType="Char(3)" />
+    <Parameter Name="trade_type" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ticker" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="ifclosed" Type="System.Int32" DbType="Int" />
+    <Parameter Name="premium" Type="System.Double" DbType="Float" />
+    <Parameter Name="commissions" Type="System.Double" DbType="Float" />
+    <Parameter Name="open_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="close_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="delta" Type="System.Double" DbType="Float" />
+    <Parameter Name="theta" Type="System.Double" DbType="Float" />
+    <Parameter Name="totalprofitloss" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="profit_threshold" Type="System.Decimal" DbType="Decimal(18,4)" />
+    <Parameter Name="email_notifications" Type="System.Int32" DbType="Int" />
+    <Parameter Name="notes" Type="System.String" DbType="VarChar(MAX)" />
+    <Parameter Name="last_email" Type="System.DateTime" DbType="DateTime" />
+    <ElementType Name="InsertTradeResult">
+      <Column Name="TradeId" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.UpdateConIdLeg" Method="UpdateConIdLeg">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="conid" Type="System.Int32" DbType="Int" />
+    <Parameter Name="localsymbol" Type="System.String" DbType="VarChar(22)" />
+    <Parameter Name="multiplier" Type="System.Int32" DbType="Int" />
+    <Return Type="System.Int32" />
+  </Function>
+  <Function Name="dbo.UpsertLeg" Method="UpsertLeg">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="conid" Type="System.Int32" DbType="Int" />
+    <Parameter Name="localsymbol" Type="System.String" DbType="VarChar(22)" />
+    <Parameter Name="ticker" Type="System.String" DbType="VarChar(10)" />
+    <Parameter Name="equitytype" Type="System.String" DbType="Char(3)" />
+    <Parameter Name="exchange" Type="System.String" DbType="VarChar(6)" />
+    <Parameter Name="multiplier" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ifclosed" Type="System.Int32" DbType="Int" />
+    <Parameter Name="ifcall" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="ifsell" Type="System.Boolean" DbType="Bit" />
+    <Parameter Name="strike" Type="System.Double" DbType="Float" />
+    <Parameter Name="expiry" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="openprice" Type="System.Double" DbType="Float" />
+    <Parameter Name="closeprice" Type="System.Double" DbType="Float" />
+    <Parameter Name="no_contracts" Type="System.Int32" DbType="Int" />
+    <Parameter Name="commissions" Type="System.Double" DbType="Float" />
+    <Parameter Name="open_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="close_date" Type="System.DateTime" DbType="Date" />
+    <Parameter Name="last_email" Type="System.DateTime" DbType="DateTime" />
+    <Parameter Name="trade_id" Type="System.Int32" DbType="Int" />
+    <ElementType Name="UpsertLegResult">
+      <Column Name="Id" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </ElementType>
+  </Function>
+  <Function Name="dbo.UpdateLegGreeks" Method="UpdateLegGreeks">
+    <Parameter Name="id" Type="System.Int32" DbType="Int" />
+    <Parameter Name="delta" Type="System.Double" DbType="Float" />
+    <Parameter Name="theta" Type="System.Double" DbType="Float" />
+    <Parameter Name="gamma" Type="System.Double" DbType="Float" />
+    <Parameter Name="vega" Type="System.Double" DbType="Float" />
+    <Parameter Name="mydelta" Type="System.Double" DbType="Float" />
+    <Parameter Name="mytheta" Type="System.Double" DbType="Float" />
+    <Parameter Name="mygamma" Type="System.Double" DbType="Float" />
+    <Parameter Name="myvega" Type="System.Double" DbType="Float" />
+    <Return Type="System.Int32" />
+  </Function>
+</Database>

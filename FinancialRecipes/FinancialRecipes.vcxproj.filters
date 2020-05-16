@@ -1,0 +1,483 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FinancialRecipes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\fin_recipes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\fin_recipes_extra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\fin_recipes_gsl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\fin_recipes_itpp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\fin_recipes_newmat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\normdist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\term_structure_class_interpolated.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\term_structure_class_flat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\term_structure_class.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FR\term_structure_class_svensson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FinancialRecipes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AssemblyInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\anal_price_am_call_div.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\approx_am_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\approx_am_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bermudan_call_option.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bermudan_put_option.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_call_payout.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_delta_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_delta_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_div_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_div_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_partials_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_partials_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_prop_div_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_prop_div_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_am_put_payout.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_eur_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_eur_call_ud.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_eur_call_ud_one.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bin_eur_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\binomial_generic.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\binomial_generic_delta.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\binomial_tree_ud.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_call_div.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_delta_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_delta_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_imp_vol_bisect.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_imp_vol_newt.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_partials_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_partials_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_price_payout_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_price_payout_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\black_scholes_put_div.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_call_binom_am.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_call_bs.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_call_coupon_bs.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_call_rend_bart.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_call_vasicek.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_put_binom_am.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_put_bs.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_put_coupon_bs.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bondopt_put_vasicek.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_convexity.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_convexity_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_convexity_termstru.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_duration.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_duration_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_duration_macaulay.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_duration_macaulay_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_duration_modified.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_duration_termstru.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_price.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_price_both.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_price_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_price_termstru.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_yield.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\bonds_yield_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cflow_irr.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cflow_irr_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cflow_irr_test_unique.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cflow_pv.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cflow_pv_discrete.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cum_normal.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\cum_normal_bivariate.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\currency_opt_bin_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\currency_opt_bin_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\currency_opt_euro_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\currency_opt_euro_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\exotics_asian_price_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\exotics_lookback_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\exotics_lookback_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\findiff_exp_am_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\findiff_exp_am_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\findiff_exp_eur_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\futures_opt_call_bin.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\futures_opt_call_black.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\futures_opt_put_bin.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\futures_opt_put_black.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\futures_price.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\interest_rate_trees_gbm_build.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\interest_rate_trees_gbm_calculate_spot_rate.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\interest_rate_trees_gbm_value_of_callable.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\interest_rate_trees_gbm_value_of_cashflows.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\merton_jump_diff_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\normdist.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\opt_price_trinom_am_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\opt_price_trinom_am_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\option_price_american_perpetual_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\option_price_american_perpetual_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\payoff_average.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\payoff_binary_options.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\payoff_binary_put_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\payoff_black_scholes_case.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\payoff_lookback.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\random_normal.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\random_uniform.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\rendleman_bartter_build_interest_rate_tree.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_european_options_generic_routine.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_european_options_generic_routine_antithetic_variate.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_european_options_generic_routine_control_variate.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_european_options_generic_routine_price_sequence.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_european_options_generic_routine_price_sequence_control_variate.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_lognormal_variable.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulate_lognormally_distributed_sequence.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulated_call_euro.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulated_delta_call.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulated_delta_put.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\simulated_put_euro.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_cir.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_cubic_spline.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_flat.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_ho_lee.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_ho_lee_build_tree.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_ho_lee_calc.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_ho_lee_price_bond_option.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_interpolated.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_nelson_siegel.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_svensson.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\term_structure_class_vasicek.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_discfact_cir.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_discfact_cubic_spline.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_discfact_vasicek.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_transforms.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_yield_interpolated.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_yield_nels_sie.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\termstru_yield_svensson.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\warrant_price_black_scholes.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FR\warrant_price_black_scholes_dividends.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="app.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="app.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FR\makefile">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>

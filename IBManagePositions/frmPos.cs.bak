@@ -1,0 +1,3738 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using SWI.Controls;
+using Be.Timvw.Framework.ComponentModel;
+using System.Threading;
+using System.Globalization;
+using System.Net.Mail;
+using PopupControl;
+
+namespace IBManagePositions
+{
+    public partial class frmPos : Form
+    {
+        const int trdcolTICKERTYPE = 1;
+        const int trdcolTICKER = 2;
+        const int trdcolUNDPRICE = 4;
+        const int trdcolOPENCLOSE = 5;
+        const int trdcolPREMIUM = 6;
+        const int trdcolDELTA = 8;
+        const int trdcolTHETA = 9;
+        const int trdcolVEGA = 10;
+        const int trdcolTHETAVEGARATIO = 11;
+        const int trdcolTOTALPROFIT = 12;
+        const int trdcolDAILYPROFIT = 13;
+        const int trdcolOPENDATE = 14;
+        const int trdcolCLOSEDATE = 15;
+
+        const int legcolID = 0;
+        const int legcolTICKER = 1;
+        const int legcolEQUITYTYPE = 2;
+        const int legcolUNDPRICE = 3;
+        const int legcolOPENCLOSE = 4;
+        const int legcolCALLPUT = 5;
+        const int legcolBUYSELL = 6;
+        const int legcolSTRIKE = 7;
+        const int legcolEXPIRES = 8;
+        const int legcolDAYSLEFT = 9;
+        const int legcolOPENPRICE = 10;
+        const int legcolCLOSEPRICE = 11;
+        const int legcolLAST = 12;
+        const int legcolBID = 13;
+        const int legcolASK = 14;
+        const int legcolNOCONTRACTS = 15;
+        const int legcolPREMIUM = 16;
+        const int legcolDELTA = 18;
+        const int legcolTHETA = 19;
+        const int legcolGAMMA = 20;
+        const int legcolVEGA = 21;
+        const int legcolTHETAVEGARATIO = 22;
+        const int legcolPROBITM = 23;
+        const int legcolTOTALPROFIT = 24;
+        const int legcolDAILYPROFIT = 25;
+        const int legcolPERCENTPROFIT = 26;
+        const int legcolOPENDATE = 27;
+        const int legcolCLOSEDATE = 28;
+
+        private Color colRED = Color.FromArgb (228, 71, 23);
+        private Color colYELLOW = Color.FromArgb (248, 236, 47);
+
+        delegate void UpdateMsgDelegate (ErrorLevel level, string text);
+        delegate void DataViewDelegate (int index);
+
+        private bool m_bIfConnected = false;
+        public static LogCtl m_Log;
+        private bool bSettingWidthsToBeSaved = false;
+        private bool m_bNotesDirty = false;
+        private bool m_bTradeProfitThresholdDirty = false;
+        private bool m_bLegProfitThresholdDirty;
+        private bool m_bTradePriceThresholdDirty;
+        private bool m_bTradeEmailNotificationsDirty = false;
+        private bool m_bLegEmailNotificationsDirty = false;
+        private DateTime m_RememberDateExpires;
+        private System.Collections.Specialized.StringCollection LegColumnWidths;
+        private System.Collections.Specialized.StringCollection TradeColumnWidths;
+        private SortableBindingList<TradeData> m_Trades = new SortableBindingList<TradeData> ();
+        private List<LegData> m_ActiveLegs;
+        private GridToolTip m_CustomProfitToolTip;
+        private bool m_bLegRowDirtyFlag;
+        private System.Drawing.Size m_szForm;
+        private Popup m_ProfitToolTip;
+        internal static string m_DataGroupName { get; set; }
+
+        public frmPos ()
+        {
+            m_Log = new LogCtl ("IBManagePositions");
+            m_Log.LogFilename = "IBManagePositions.log";
+
+
+            InitializeComponent ();
+
+            Utils.axTws = axTws;
+            Utils.Log = m_Log;
+
+            m_RememberDateExpires = Utils.ComputeNextExpiryDate (DateTime.Now);
+
+            AdjustWidths ();
+
+            {
+                DataGridViewComboBoxColumn oc = (DataGridViewComboBoxColumn) dgvLeg.Columns[legcolEQUITYTYPE];
+                oc.DisplayStyle = DataGridViewComboBoxDisplayStyle.Nothing;
+                oc.DataSource = Enum.GetValues (typeof (EquityType));
+            }
+
+            {
+                DataGridViewComboBoxColumn oc = (DataGridViewComboBoxColumn) dgvLeg.Columns[legcolOPENCLOSE];
+                oc.DisplayStyle = DataGridViewComboBoxDisplayStyle.Nothing;
+                oc.DataSource = Enum.GetValues (typeof (OpenCloseValues));
+            }
+
+            {
+                DataGridViewComboBoxColumn oc = (DataGridViewComboBoxColumn) dgvLeg.Columns[legcolCALLPUT];
+                oc.DisplayStyle = DataGridViewComboBoxDisplayStyle.Nothing;
+                oc.DataSource = CallPutT.Choices ();
+                oc.DisplayMember = "Name";
+                oc.ValueMember = "Value";
+            }
+
+            {
+                DataGridViewComboBoxColumn oc = (DataGridViewComboBoxColumn) dgvLeg.Columns[legcolBUYSELL];
+                oc.DisplayStyle = DataGridViewComboBoxDisplayStyle.Nothing;
+                oc.DataSource = BuySellT.Choices ();
+                oc.DisplayMember = "Name";
+                oc.ValueMember = "Value";
+            }
+
+            {
+                DataGridViewComboBoxColumn oc = (DataGridViewComboBoxColumn) dgvTrade.Columns[trdcolTICKERTYPE];
+                oc.DisplayStyle = DataGridViewComboBoxDisplayStyle.Nothing;
+                oc.DataSource = TradeT.Choices ();
+                oc.DisplayMember = "Name";
+                oc.ValueMember = "Value";
+            }
+            {
+                DataGridViewComboBoxColumn oc = (DataGridViewComboBoxColumn) dgvTrade.Columns[trdcolOPENCLOSE];
+                oc.DisplayStyle = DataGridViewComboBoxDisplayStyle.Nothing;
+                oc.DataSource = Enum.GetValues (typeof (OpenCloseValues)); 
+            }
+
+            {
+                DataGridViewTextBoxColumn oc = (DataGridViewTextBoxColumn) dgvTrade.Columns[trdcolCLOSEDATE];
+                oc.DefaultCellStyle.NullValue = string.Empty;
+            }
+            {
+               DataGridViewTextBoxColumn oc = (DataGridViewTextBoxColumn) dgvLeg.Columns[legcolCLOSEPRICE];
+               oc.DefaultCellStyle.NullValue = string.Empty;
+            }
+            {
+                CalendarColumn oc = (CalendarColumn) dgvLeg.Columns[legcolCLOSEDATE];
+                oc.DefaultCellStyle.NullValue = string.Empty;
+            }
+            {
+                DataGridViewTextBoxColumn oc = (DataGridViewTextBoxColumn) dgvLeg.Columns[legcolSTRIKE];
+                oc.DefaultCellStyle.NullValue = string.Empty;
+            }
+
+            //Font font = new Font (new FontFamily ("Calibri"), 9.0F, FontStyle.Regular, GraphicsUnit.Point);
+
+            dgvLeg.Columns[legcolDELTA].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvLeg.Columns[legcolTHETA].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvLeg.Columns[legcolGAMMA].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvLeg.Columns[legcolVEGA].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            dgvLeg.Columns[legcolTHETAVEGARATIO].HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
+
+            //dgvLeg.Columns[legcolDELTA].HeaderText = "Total δ";
+            ////dgvLeg.Columns[legcolTHETA].HeaderCell.Style.Font = font;
+            //dgvLeg.Columns[legcolTHETA].HeaderText = "Total θ";
+            ////dgvLeg.Columns[legcolGAMMA].HeaderCell.Style.Font = font;
+            //dgvLeg.Columns[legcolGAMMA].HeaderText = "γ";
+            ////dgvLeg.Columns[legcolVEGA].HeaderCell.Style.Font = font;
+            //dgvLeg.Columns[legcolVEGA].HeaderText = "ν";
+            ////dgvLeg.Columns[legcolTHETAVEGARATIO].HeaderCell.Style.Font = font;
+            //dgvLeg.Columns[legcolTHETAVEGARATIO].HeaderText = "θ/ν Ratio";
+            
+            dgvLeg.RowsDefaultCellStyle.BackColor = Color.FromArgb (235, 241, 222);
+            dgvLeg.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb (216, 228, 188);
+            dgvLeg.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dgvLeg.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb (155, 187, 89);
+
+            dgvTrade.RowsDefaultCellStyle.BackColor = Color.FromArgb (219, 228, 241);
+            dgvTrade.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb (184, 204, 227);
+            dgvTrade.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            dgvTrade.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb (79, 129, 188);
+
+
+            /* Associate a context menu for premium column
+             * ------------------------------------------- */
+
+            dgvTrade.Columns[trdcolPREMIUM].ContextMenuStrip = cmsTradePremium;
+
+            m_CustomProfitToolTip = new GridToolTip ();
+            m_ProfitToolTip = new Popup (m_CustomProfitToolTip);
+            m_ProfitToolTip.AutoClose = false;
+            m_ProfitToolTip.FocusOnOpen = false;
+            m_ProfitToolTip.ShowingAnimation = m_ProfitToolTip.HidingAnimation = PopupAnimations.Blend;
+
+
+        }
+
+        /*****************************************************
+         * 
+         * Form Closing
+         * 
+         * ***************************************************/
+
+        private void frmPos_FormClosing (object sender, FormClosingEventArgs e)
+        {
+            if (bSettingWidthsToBeSaved)
+            {
+//                Properties.Settings.Default.PositionColumnWidths = PositionColumnWidths;
+                Properties.Settings.Default.LegColumnWidths = LegColumnWidths;
+                Properties.Settings.Default.TradeColumnWidths = TradeColumnWidths;
+                Properties.Settings.Default.FormHeight = m_szForm.Height;
+                Properties.Settings.Default.FormWidth = m_szForm.Width;
+                Properties.Settings.Default.Save ();
+            }
+
+            axTws.disconnect ();
+            m_Log.Dispose ();
+
+        }
+
+ 
+        /*****************************************************
+         * 
+         * Adjust Widths
+         * 
+         * ***************************************************/
+
+        private void AdjustWidths ()
+        {
+            LegColumnWidths = Properties.Settings.Default.LegColumnWidths;
+
+            for (int i = 0; i < dgvLeg.Columns.Count; i++)
+            {
+                int col_width;
+                if (i < LegColumnWidths.Count)
+                {
+                    if (int.TryParse (LegColumnWidths[i], out col_width))
+                    {
+                        dgvLeg.Columns[i].Width = col_width;
+                    }
+                }
+            }
+
+            TradeColumnWidths = Properties.Settings.Default.TradeColumnWidths;
+
+            for (int i = 0; i < dgvTrade.Columns.Count; i++)
+            {
+                int col_width;
+                if (i < TradeColumnWidths.Count)
+                {
+                    if (int.TryParse (TradeColumnWidths[i], out col_width))
+                    {
+                        dgvTrade.Columns[i].Width = col_width;
+                    }
+                }
+            }
+        }
+
+        /*****************************************************
+        * 
+        * Form Load
+        * 
+        * ***************************************************/
+        private void frmPos_Load (object sender, EventArgs e)
+        {
+            m_bConnectFailure = false;
+            
+            using (frmConnect Con = new frmConnect ())
+            {
+                if (Con.ShowDialog (this) == DialogResult.OK)
+                {
+                    string host = "127.0.0.1";
+                    try
+                    {
+                        axTws.connect (host, Con.Port, Con.ClientId);
+                        m_bIfConnected = true;
+                        m_DataGroupName = Con.DataGroupName;
+                    }
+                    catch (Exception ex)
+                    {
+                        AddMessage (ErrorLevel.logERR, string.Format ("Please check your connection attributes. {0}", ex.Message));
+                        m_bConnectFailure = true;
+                    }
+                }
+            }
+        }
+
+        /*****************************************************
+        * 
+        * AddMessage
+        * 
+        * ***************************************************/
+        public void AddMessage (ErrorLevel level, string text)
+        {
+            if (this.tbMsg.InvokeRequired)
+            {
+                UpdateMsgDelegate d = new UpdateMsgDelegate (AddMessage);
+                this.Invoke (d, new object[] { text });
+            }
+            else
+            {
+                m_Log.Log (level, text);
+                tbMsg.Text += (text + "\r\n");
+                tbMsg.Select (tbMsg.Text.Length, 0);
+                tbMsg.ScrollToCaret ();
+            }
+        }
+
+        /************************************************************
+          * 
+          * frmPos_Shown
+          * 
+          * *********************************************************/
+
+        private void frmPos_Shown (object sender, EventArgs e)
+        {
+            if (!m_bIfConnected && !m_bConnectFailure)
+            {
+                this.Close ();
+            }
+            if (m_bConnectFailure)
+            {
+                MessageBox.Show ("Connection failure.");
+            }
+
+            using (Font font = new Font ("Tahoma", 6.75f, GraphicsUnit.Point))
+            { 
+                foreach (Control c in tabControlPos.Controls)
+                {
+                    UpdateTheme (c, font);
+                }
+            }
+
+            AdjustWidths ();
+            bSettingWidthsToBeSaved = true; // can save now
+            m_szForm.Height = Properties.Settings.Default.FormHeight;
+            m_szForm.Width = Properties.Settings.Default.FormWidth;
+            this.Size = m_szForm;
+
+            LoadTradeGrid ();
+        }
+
+        /**********************************************************
+         * 
+         * UpdateTheme
+         * 
+         * *******************************************************/
+
+        private void UpdateTheme (Control c, System.Drawing.Font font)
+        {
+            if (c.GetType () == typeof (Button))
+            {
+                c.Font = font;
+                //c.BackColor = Color.FromArgb (79, 129, 188);
+            }
+            else if (c.GetType () == typeof (CheckBox))
+            {
+                c.Font = Font;
+            }
+            else if (c.GetType () == typeof (Label))
+            {
+                if (((string) c.Tag) != "lma")
+                {
+                    c.Font = font;
+                }
+            }
+
+            foreach (Control control in c.Controls)
+            {
+                UpdateTheme (control, font);
+            }
+        }
+
+         /***********************************************************
+         * 
+         * hlProbabilityITM
+         * 
+         * ********************************************************/
+
+        private void hlLegProbabilityITM (TradeData trade, LegData leg)
+        {
+            if (trade == null)
+            {
+                return;
+            }
+
+            foreach (DataGridViewRow r in dgvLeg.Rows)
+            {
+                if (!r.IsNewRow)
+                {
+                    if (leg == trade.m_Legs[r.Index])
+                    {
+                        DataGridViewCell cell = r.Cells[legcolPROBITM];
+
+                        if (leg.ProbITM > 30.0 && leg.ProbITM < 50.0)
+                        {
+                            cell.Style.BackColor = colYELLOW;
+                            cell.Style.ForeColor = Color.Black;
+                            //NotifyBrian (EmailNotify.NEAR_ITM, index);
+                        }
+                        else if (leg.ProbITM >= 50.0)
+                        {
+                            cell.Style.BackColor = colRED;
+                            cell.Style.ForeColor = Color.White;
+                            //NotifyBrian (EmailNotify.ITM, index);
+                        }
+                        else
+                        {
+                            cell.Style.BackColor = Color.Empty;
+                            cell.Style.ForeColor = Color.Black;
+                        }
+                        dgvLeg.InvalidateCell (r.Cells[legcolPROBITM]);
+                    }
+                }
+            }
+        }
+
+
+        /*************************************************************************
+         * 
+         * Call back OptionComputation
+         * 
+         * **********************************************************************/
+
+        private void axTws_tickOptionComputation (object sender, AxTWSLib._DTwsEvents_tickOptionComputationEvent e)
+        {
+            if ((e.id & 0xFFFF0000) == Utils.ibLEG)
+            {
+                LegOptionComputation (e);
+            }
+            else if ((e.id & 0xFFFF0000) == Utils.ibCLOSETRADE)
+            {
+//                m_frmCloseTrade.TradeCloseOptionComputation (e);
+            }
+            else if ((e.id & 0xFFFF0000) == 0)
+            {
+//                OldOptionComputation (e);
+            }
+        }
+
+        private void LegOptionComputation (AxTWSLib._DTwsEvents_tickOptionComputationEvent e)
+        {
+            int index = e.id & 0xFFFF;
+
+            double? price = null;
+            //     1.79769e+308;
+            // 1.79769313486232E+308
+            m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickOptionComputation for {0} ticktype: {1} {3} value: {2}", m_ActiveLegs[index].Ticker, e.tickType, e.optPrice, TickType.Display (e.tickType)));
+            if (e.optPrice < double.MaxValue)
+            {
+                price = e.optPrice;
+            }
+            else
+            {
+                m_Log.Log (ErrorLevel.logERR, "axTws_tickOptionComputation price set to nil");
+            }
+            LegData option = m_ActiveLegs[index];
+
+            if (e.delta < double.MaxValue)
+            {
+                if (option.IfSell)
+                {
+                    option.Delta = -e.delta;
+                    option.TotalDelta = option.NoContracts * (-e.delta);
+                }
+                else
+                {
+                    option.Delta = e.delta;
+                    option.TotalDelta = option.NoContracts * (e.delta);
+
+                }
+                LegChangedSoUpdateGUI (option, legcolDELTA);
+            }
+            //else
+            //{
+            //    m_Log.Log (ErrorLevel.logERR, string.Format ("axTws_tickOptionComputation for {0} Bad delta. {1}.", m_ActiveLegs[index].Ticker, e.delta.ToString ()));
+            //}
+            if (e.theta < double.MaxValue)
+            {
+                if (option.IfSell)
+                {
+                    option.Theta = -e.theta;
+                    option.TotalTheta = 100 * option.NoContracts * (-e.theta);
+                }
+                else
+                {
+                    option.Theta = e.theta;
+                    option.TotalTheta = 100 * option.NoContracts * (e.theta);
+                }
+                LegChangedSoUpdateGUI (option, legcolTHETA);
+                //  dgvPositions.InvalidateCell (dgvPositions.Rows[index].Cells[colTHETA]);
+
+                option.ThetaVegaRatio = option.Theta / option.Vega;
+                LegChangedSoUpdateGUI (option, legcolTHETAVEGARATIO);
+            }
+            //else
+            //{
+            //    m_Log.Log (ErrorLevel.logERR, string.Format ("axTws_tickOptionComputation for {0} Bad theta. {1}.", m_ActiveLegs[index].Ticker, e.theta.ToString ()));
+            //}
+            if (e.gamma < double.MaxValue)
+            {
+                option.Gamma = e.gamma;
+                LegChangedSoUpdateGUI (option, legcolGAMMA);
+            }
+            if (e.vega < double.MaxValue)
+            {
+                option.Vega = e.vega;
+                LegChangedSoUpdateGUI (option, legcolVEGA);
+                option.ThetaVegaRatio = option.Theta / option.Vega;
+                LegChangedSoUpdateGUI (option, legcolTHETAVEGARATIO);
+            }
+
+            switch (e.tickType)
+            {
+                case TickType.BID_OPTION:
+                    if (price != null)
+                    {
+                        if (option.CurrBid != price)
+                        {
+                            option.CurrBid = price;
+                            LegChangedSoUpdateGUI (option, legcolBID);
+                            option.ComputeProfitFigures ();
+                            LegChangedSoUpdateGUI (option, legcolTOTALPROFIT);
+                            LegChangedSoUpdateGUI (option, legcolPERCENTPROFIT);
+                            //dgvPositions.InvalidateCell (dgvPositions.Rows[index].Cells[colBID]);
+                            option.EstimateCommissions ();
+                        }
+                    }
+                    break;
+                case TickType.ASK_OPTION:
+                    if (price != null)
+                    {
+                        if (option.CurrAsk != price)
+                        {
+                            option.CurrAsk = price;
+                            LegChangedSoUpdateGUI (option, legcolASK);
+                            option.ComputeProfitFigures ();
+                            LegChangedSoUpdateGUI (option, legcolTOTALPROFIT);
+                            LegChangedSoUpdateGUI (option, legcolPERCENTPROFIT);
+                            //dgvPositions.InvalidateCell (dgvPositions.Rows[index].Cells[colASK]);
+                            option.EstimateCommissions ();
+                        }
+                    }
+                    break;
+                case TickType.LAST_OPTION:
+                    if (price != null)
+                    {
+                        if (option.LastPrice != price)
+                        {
+                            option.LastPrice = price;
+                            LegChangedSoUpdateGUI (option, legcolLAST);
+                            option.ComputeProfitFigures ();
+                            LegChangedSoUpdateGUI (option, legcolTOTALPROFIT);
+                            LegChangedSoUpdateGUI (option, legcolPERCENTPROFIT);
+                            //dgvPositions.InvalidateCell (dgvPositions.Rows[index].Cells[colLAST]);
+                        }
+                    }
+                    break;
+                case TickType.MODEL_OPTION:
+                    m_Log.Log (ErrorLevel.logDEB, "axTws_tickOptionComputation case 13");
+                    break;
+
+                default:
+                    m_Log.Log (ErrorLevel.logSEV, "Bug in axTws_tickOptionComputation");
+                    break;
+            }
+            if (e.undPrice < double.MaxValue)
+            {
+                option.UpdateUnderlyingPrice (e.undPrice);
+                LegChangedSoUpdateGUI (option, legcolUNDPRICE);
+                //dgvPositions.InvalidateCell (dgvPositions.Rows[index].Cells[colUNDPRICE]);
+            }
+            m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickOptionComputation for {0} Underlying price {1}.", option.Ticker, e.undPrice.ToString ()));
+            if (e.impliedVol < double.MaxValue)
+            {
+                if (option.iv != e.impliedVol)
+                {
+                    option.iv = e.impliedVol;
+                    m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickOptionComputation for {0} iv={1:F4}.", option.Ticker, e.impliedVol));
+                    option.ComputeProbITM ();
+                    LegChangedSoUpdateGUI (option, legcolPROBITM);
+                }
+            }
+            //else
+            //{
+            //    m_Log.Log (ErrorLevel.logERR, string.Format ("axTws_tickOptionComputation for {0} Bad IV. {1}.", m_ActiveLegs[index].Ticker, e.impliedVol.ToString ()));
+            //}
+        }
+
+        /**********************************************************
+         * 
+         * Some leg data has been updated
+         * 
+         * Note that this may be a leg that is not currently displayed
+         * 
+         * *******************************************************/
+
+        internal void LegChangedSoUpdateGUI (LegData leg, int col)
+        {
+            /* Signal a change
+             * --------------- */
+
+            leg.SignalTrade (col);    // the parent trade should pick this up.
+
+            /* Now see if any cells need to be invalidated
+             * ------------------------------------------- */
+
+            TradeData trade = null;
+            if (!dgvTrade.CurrentRow.IsNewRow)
+            {
+                trade = m_Trades[dgvTrade.CurrentRow.Index];
+            }
+
+            if (trade == null || !trade.m_Legs.Contains (leg))
+            {
+                // Nope, this isn't currently displayed, so bail
+                return;
+            }
+ 
+            switch (col)
+            {
+//                case legcolUNDPRICE:
+                case legcolLAST:
+                case legcolBID:
+                case legcolASK:
+                case legcolDELTA:
+                case legcolTHETA:
+                case legcolTHETAVEGARATIO:
+                case legcolGAMMA:
+                case legcolVEGA:
+                case legcolPERCENTPROFIT:
+
+                    /* invalidate the cell
+                     * ------------------- */
+
+                    for (int i = 0; i < dgvLeg.Rows.Count; i++)
+                    {
+                        DataGridViewRow r = dgvLeg.Rows[i];
+                        if (trade != null && r.Index < trade.m_Legs.Count && trade.m_Legs[r.Index] == leg)
+                        {
+                            dgvLeg.InvalidateCell (r.Cells[col]);
+                        }
+                    }
+                    break;
+
+                case legcolUNDPRICE:
+
+                    /* invalidate the cell
+                     * ------------------- */
+
+                    for (int i = 0; i < dgvLeg.Rows.Count; i++)
+                    {
+                        DataGridViewRow r = dgvLeg.Rows[i];
+                        if (trade != null && r.Index < trade.m_Legs.Count && trade.m_Legs[r.Index] == leg)
+                        {
+                            dgvLeg.InvalidateCell (r.Cells[col]);
+                            if (leg.Equity == EquityType.Stock)
+                            {
+                                hlLegProfitLoss (r, leg);
+                                dgvLeg.InvalidateCell (r.Cells[legcolTOTALPROFIT]);
+                                dgvLeg.InvalidateCell (r.Cells[legcolDAILYPROFIT]);
+                            }
+                        }
+                    }
+                    break;
+
+                case legcolPROBITM:
+                    hlLegProbabilityITM (trade, leg);
+                    break;
+
+                case legcolTOTALPROFIT:
+                    for (int i = 0; i < dgvLeg.Rows.Count; i++)
+                    {
+                        DataGridViewRow r = dgvLeg.Rows[i];
+                        if (trade != null && r.Index < trade.m_Legs.Count && trade.m_Legs[r.Index] == leg)
+                        {
+                            hlLegProfitLoss (r, leg);
+                            dgvLeg.InvalidateCell (r.Cells[col]);
+                        }
+                    }
+                    break;
+
+                default:
+                    m_Log.Log (ErrorLevel.logSEV, string.Format ("LegUpdated: didn't handle {0} column update", col));
+                    break;
+            }
+        }
+        
+
+        private void axTws_tickGeneric (object sender, AxTWSLib._DTwsEvents_tickGenericEvent e)
+        {
+            if ((e.id & 0xFFFF0000) == Utils.ibLEG)
+            {
+                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickGeneric for {0} tickType: {1} value: {2}", m_ActiveLegs[e.id & 0xFFFF], e.tickType, e.value));
+            }
+            else if ((e.id & Utils.ibCLOSETRADE) == Utils.ibCLOSETRADE)
+            {
+//                if (m_frmCloseTrade != null)
+//                {
+////                    m_frmCloseTrade.tickGeneric (e);
+//                }
+            }
+            else
+            {
+//                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickGeneric for {0} tickType: {1} value: {2}", m_Options[e.id].Ticker, e.tickType, e.value));
+            }
+        }
+
+        private void axTws_tickEFP (object sender, AxTWSLib._DTwsEvents_tickEFPEvent e)
+        {
+            if ((e.tickerId & 0xFFFF0000) == Utils.ibLEG)
+            {
+                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickEFP for {0}", m_ActiveLegs[e.tickerId & 0xFFFF].Ticker));
+            }
+            else
+            {
+//                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickEFP for {0}", m_Options[e.tickerId].Ticker));
+            }
+        }
+
+        private void axTws_tickSize (object sender, AxTWSLib._DTwsEvents_tickSizeEvent e)
+        {
+            if ((e.id & 0xFFFF0000) == Utils.ibLEG)
+            {
+                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickSize for {0} tickType:{1} {3} size: {2}", m_ActiveLegs[e.id & 0xFFFF].Ticker, e.tickType, e.size, TickType.Display (e.tickType)));
+            }
+            else if ((e.id & Utils.ibCLOSETRADE) == Utils.ibCLOSETRADE)
+            {
+//                if (m_frmCloseTrade != null)
+//                {
+////                    m_frmCloseTrade.tickSize (e);
+//                }
+            }
+            else
+            {
+//                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickSize for {0} tickType:{1} size: {2}", m_Options[e.id].Ticker, e.tickType, e.size));
+            }
+        }
+
+        private void axTws_tickSnapshotEnd (object sender, AxTWSLib._DTwsEvents_tickSnapshotEndEvent e)
+        {
+            if ((e.reqId & 0xFFFF0000) == Utils.ibLEG)
+            {
+                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickSnapshotEnd for {0}", m_ActiveLegs[e.reqId & 0xFFFF].Ticker));
+                m_ActiveLegs[e.reqId & 0xFFFF].bIfUpdatingMarketData = false;
+            }
+            else if ((e.reqId & Utils.ibCLOSETRADE) == Utils.ibCLOSETRADE)
+            {
+//                if (m_frmCloseTrade != null)
+//                {
+////                    m_frmCloseTrade.tickSnapshotEnd (e);
+//                }
+            }
+            else
+            {
+                //m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickSnapshotEnd for {0}", m_Options[e.reqId].Ticker));
+                //hlStandardView (e.reqId);
+            }
+        }
+
+        private void axTws_tickPrice (object sender, AxTWSLib._DTwsEvents_tickPriceEvent e)
+        {
+            int index = e.id & 0xFFFF;
+
+            if (e.price < double.MaxValue)
+            {
+                if ((e.id & 0xFFFF0000) == Utils.ibLEG)
+                {
+                    m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickPrice for {0} tickType:{1} {3} value: {2}", m_ActiveLegs[index].Ticker, e.tickType, e.price, TickType.Display (e.tickType)));
+
+                    /* we are only interested in tracking the last price if this is a stock
+                     * -------------------------------------------------------------------- */
+
+                    LegData leg = m_ActiveLegs[index];
+                    if (e.tickType == TickType.LAST) // last price
+                    {
+                        if (leg.Equity == EquityType.Stock)
+                        {
+                            leg.UpdateUnderlyingPrice (e.price);
+                            LegChangedSoUpdateGUI (leg, legcolUNDPRICE);
+                            leg.SignalTrade (legcolUNDPRICE);
+
+                            LegChangedSoUpdateGUI (leg, legcolTOTALPROFIT);
+                            LegChangedSoUpdateGUI (leg, legcolDAILYPROFIT);
+                            leg.SignalTrade (legcolTOTALPROFIT);
+                            leg.SignalTrade (legcolDAILYPROFIT);
+                        }
+                    }
+                    else if (e.tickType == TickType.CLOSE)
+                    {
+                        if (leg.Equity == EquityType.Option)
+                        {
+                            if (leg.LastPrice != e.price)
+                            {
+                                leg.LastPrice = e.price;
+                                LegChangedSoUpdateGUI (leg, legcolLAST);
+                                m_ActiveLegs[index].ComputeProfitFigures ();
+                                LegChangedSoUpdateGUI (leg, legcolTOTALPROFIT);
+                                LegChangedSoUpdateGUI (leg, legcolPERCENTPROFIT);
+                            }
+                        }
+                    }
+
+                }
+                else if ((e.id & Utils.ibCLOSETRADE) == Utils.ibCLOSETRADE)
+                {
+                    //                if (m_frmCloseTrade != null)
+                    //                {
+                    ////                    m_frmCloseTrade.tickPrice (e);
+                    //                }
+                }
+                else
+                {
+                    //                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickPrice for {0} tickType:{1} value: {2}", m_Options[e.id].Ticker, e.tickType, e.price));
+                }
+            }
+        }
+
+        private void axTws_tickString (object sender, AxTWSLib._DTwsEvents_tickStringEvent e)
+        {
+            if ((e.id & 0xFFFF0000) == Utils.ibLEG)
+            {
+                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickString called for {0} tickType:{1} {3} [{2}] ", m_ActiveLegs[e.id & 0xFFFF].Ticker, e.tickType, e.value, TickType.Display (e.tickType)));
+            }
+            else if ((e.id & Utils.ibCLOSETRADE) == Utils.ibCLOSETRADE)
+            {
+//                if (m_frmCloseTrade != null)
+//                {
+////                    m_frmCloseTrade.tickString (e);
+//                }
+            }
+            else
+            {
+//                m_Log.Log (ErrorLevel.logDEB, string.Format ("axTws_tickString called for {0} tickType:{1} [{2}] ", m_Options[e.id].Ticker, e.tickType, e.value));
+            }
+        }
+
+        private void axTws_errMsg (object sender, AxTWSLib._DTwsEvents_errMsgEvent e)
+        {
+            NotifyError (e.id, e.errorCode, e.errorMsg);
+        }
+
+        /**********************************************************************
+         * 
+         * NotifyError
+         * 
+         * *******************************************************************/
+
+        public void NotifyError (int id, int errorCode, string errorMsg)
+        {
+            if (id == -1 && errorCode == 502)
+            {
+                m_bConnectFailure = true; // connection failure
+            }
+            AddMessage (ErrorLevel.logERR, string.Format ("Error. Id: {0:X} Code: {1} Msg: {2}", id, errorCode, errorMsg));
+        }
+
+        /**********************************************************************
+          * 
+          * contractDetails event
+          * 
+          * *******************************************************************/
+
+        private void axTws_contractDetails (object sender, AxTWSLib._DTwsEvents_contractDetailsEvent e)
+        {
+            //m_Log.Log (ErrorLevel.logDEB, string.Format ("Local Symbol: {0}, Expires: {1}, Strike: {2} Multiplier: {3} {4}", e.localSymbol, e.expiry, e.strike.ToString ("0000.00"), e.multiplier, e.conId.ToString ()));
+            //if (e.multiplier != "100")
+            //{
+            //    m_Log.Log (ErrorLevel.logERR, "Skipped, due to wrong multiplier");
+            //    return;
+            //}
+            //m_Options[m_CurrentOption].m_OptionChain.Add (new OptionInfo (e.strike, e.localSymbol, e.multiplier, e.conId));
+        }
+
+        /**********************************************************************
+         * 
+         * contractDetailsEnd event
+         * - finished collecting this one option of the option chain
+         * 
+         * *******************************************************************/
+        private void axTws_contractDetailsEnd (object sender, AxTWSLib._DTwsEvents_contractDetailsEndEvent e)
+        {
+            if ((e.reqId & Utils.ibLEG) == Utils.ibLEG)
+            {
+                m_Log.Log (ErrorLevel.logINF, string.Format ("axTws_contractDetailsEnd: {0}", m_ActiveLegs[e.reqId & 0xFFFF].Ticker));
+            }
+            else
+            {
+                //m_Log.Log (ErrorLevel.logINF, string.Format ("axTws_contractDetailsEnd: {0}", m_Options[e.reqId].Ticker));
+                //FinishedCollectingOptionChains (e.reqId);
+            }
+        }
+
+        /*************************************************************************
+         * 
+         * axTws_contractDetailsEx event
+         * 
+         * **********************************************************************/
+
+        private void axTws_contractDetailsEx (object sender, AxTWSLib._DTwsEvents_contractDetailsExEvent e)
+        {
+            if ((e.reqId & Utils.ibLEG) == Utils.ibLEG)
+            {
+                TWSLib.IContractDetails c = e.contractDetails;
+                TWSLib.IContract con = (TWSLib.IContract) c.summary;
+
+                if (con.multiplier == "10") // skip the minis
+                {
+                    return;
+                }
+                m_Log.Log (ErrorLevel.logINF, string.Format ("contractDetailsEx: {0}, market name: {1} ordertypes {2}", c.longName, c.marketName, c.orderTypes));
+
+                int reqId = e.reqId & 0xFFFF;
+
+                m_ActiveLegs[reqId].LocalSymbol = con.localSymbol;
+                m_ActiveLegs[reqId].ConId = con.conId;
+                m_Log.Log (ErrorLevel.logINF, string.Format ("axTws_contractDetailsEx: conId for {0} {1} set to {2}", con.localSymbol, c.longName, con.conId));
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    //dc.UpdateLocalSymbolLeg (m_ActiveLegs[reqId].Id, m_ActiveLegs[reqId].LocalSymbol);
+                    dc.UpdateConIdLeg (m_ActiveLegs[reqId].Id, m_ActiveLegs[reqId].ConId, m_ActiveLegs[reqId].Multiplier);
+                }
+                FetchLegMarketData (reqId);
+            }
+            else
+            {
+//              m_Options[reqId].m_OptionChain.Add (new OptionInfo (con.strike, con.localSymbol, con.multiplier, con.conId));
+            }
+        }
+        
+        /*****************************************************
+         * 
+         * axTws_orderStatus
+         * 
+         * **************************************************/
+
+        private void axTws_orderStatus (object sender, AxTWSLib._DTwsEvents_orderStatusEvent e)
+        {
+            m_Log.Log (ErrorLevel.logINF, string.Format ("orderStatus: clientId {0} orderId {1} status {2} permid {3} why held {4} avg. Fill Price {5:F3}", e.clientId, e.id, e.status, e.permId.ToString (), e.whyHeld, e.avgFillPrice));
+        }
+
+        /****************************************************
+         * 
+         * axTws_openOrderEnd
+         * 
+         * *************************************************/
+
+        private void axTws_openOrderEnd (object sender, EventArgs e)
+        {
+            m_Log.Log (ErrorLevel.logINF, "orderEnd");
+
+        }
+         
+        private void btnMsgConnect_Click (object sender, EventArgs e)
+        {
+            m_bConnectFailure = false;
+
+            if (m_bIfConnected)
+            {
+                axTws.disconnect ();
+                m_bIfConnected = false;
+            }
+
+            using (frmConnect Con = new frmConnect ())
+            {
+                if (Con.ShowDialog (this) == DialogResult.OK)
+                {
+                    string host = "127.0.0.1";
+                    try
+                    {
+                        axTws.connect (host, Con.Port, Con.ClientId);
+                        m_bIfConnected = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        AddMessage (ErrorLevel.logERR, string.Format ("Please check your connection attributes. {0}", ex.Message));
+                        m_bConnectFailure = true;
+                    }
+                }
+            }
+        }
+
+        /**************************************************************
+          * 
+          * dgvLeg Column Width changed
+          * 
+          * ***********************************************************/
+
+        private void dgvLeg_ColumnWidthChanged (object sender, DataGridViewColumnEventArgs e)
+        {
+            if (bSettingWidthsToBeSaved)
+            {
+                LegColumnWidths = new System.Collections.Specialized.StringCollection ();
+
+                for (int i = 0; i < dgvLeg.Columns.Count; i++)
+                {
+                    LegColumnWidths.Add (dgvLeg.Columns[i].Width.ToString ());
+                }
+            }
+        }
+
+        /*************************************************************
+         * 
+         * Show or Hide Import Positions form
+         * 
+         * **********************************************************/
+
+        private void cbImportPositions_CheckedChanged (object sender, EventArgs e)
+        {
+            //if (!cbImportPositions.Checked)
+            //{
+            //    m_frmImportPositions.Hide ();
+            //    m_frmImportPositions.Dispose ();
+            //    m_frmImportPositions = null;
+            //}
+            //else
+            //{
+            //    m_frmImportPositions = new frmImportPosition ();
+            //    m_frmImportPositions.Show ();
+            //}
+
+        }
+
+        /****************************************************************
+         * 
+         * Accept a drop from the Import Positions form
+         * 
+         * **************************************************************/
+
+        private void dgvLeg_DragDrop (object sender, DragEventArgs e)
+        {
+            //if (e.Effect == DragDropEffects.Copy)
+            //{
+            //    if (e.Data.GetDataPresent ("myFormat"))
+            //    {
+            //        List<int?> PositionIdList = (List<int?>) e.Data.GetData ("myFormat");
+
+            //        using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            //        {
+            //            foreach (var id in PositionIdList)
+            //            {
+            //                var option = (from r in dc.Positions
+            //                              //join p in dc.Stocks on r.Ticker equals p.Ticker
+            //                              where r.Id == id
+            //                              select new LegData (null,
+            //                                                  r.Ticker,
+            //                                                  null,
+            //                                                  null, 
+            //                                                  r.IfClosed,
+            //                                                  r.IfCall,
+            //                                                  r.IfSell,
+            //                                                  r.Strike,
+            //                                                  r.Expiry,
+            //                                                  r.OpenPrice,
+            //                                                  r.ClosePrice,
+            //                                                  r.NoContracts,
+            //                                                  r.OpenDate,
+            //                                                  r.ClosedDate,
+            //                                                  r.ProfitLoss,
+            //                                                  r.ProfitLossTimeStamp,
+            //                                                  r.TodayProfitLoss,
+            //                                                  r.TodayProfitLossTimeStamp,
+            //                                                  r.YesterdayProfitLoss,
+            //                                                  r.YesterdayProfitLossTimeStamp,
+            //                                                  null,
+            //                                                  null,
+            //                                                  0,
+            //                                                  null)
+            //                             ).Single ();
+
+
+            //                TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];
+            //                trade.m_Legs.Add (option);
+
+            //                LegData.StatusChangeHandler sd = new LegData.StatusChangeHandler (trade.LegStatusChangeHandler); 
+            //                option.StatusChanged += sd;
+
+            //                option.UpdatePremiumCommissions ();
+            //                option.UpdateField (legcolPREMIUM);
+            //            }
+
+            //            dgvLeg.AutoGenerateColumns = false;
+            //            dgvLeg.DataSource = m_Trades[dgvTrade.CurrentRow.Index].m_Legs;
+            //        }
+            //    }
+            //}
+
+        }
+
+        private void dgvLeg_DragOver (object sender, DragEventArgs e)
+        {
+            e.Effect = DragDropEffects.Copy;
+        }
+
+ 
+        /*********************************************************************
+         * 
+         * Update trade
+         * 
+         * ******************************************************************/
+
+        private void btnUpdateTrade_Click (object sender, EventArgs e)
+        {
+             UpdateTrade ();
+        }
+
+        private void UpdateTrade ()
+        {
+            TradeData trade = null;
+
+            if (dgvTrade.CurrentRow == null)
+            {
+                return;
+            }
+            if (!dgvTrade.CurrentRow.IsNewRow)
+            {
+                trade = (TradeData) dgvTrade.CurrentRow.DataBoundItem;
+            }
+            else
+            {
+                DialogResult dr = MessageBox.Show ("A current trade needs to be selected.");
+                return;
+            }
+
+            /* First count the trades associated with the legs. Should be 0 or 1
+             * -----------------------------------------------------------------
+             * by the time this routine is called, the trade has already been updated in the
+             * database, and hence already has a tradeid assigned */
+
+            HashSet<int> tradeids = new HashSet<int> ();
+
+            foreach (LegData r in trade.m_Legs)
+            {
+                int? trid = r.Trade_id;
+                if (trid != null)
+                {
+                    tradeids.Add ((int) trid);
+                }
+            }
+
+            if (tradeids.Count > 1)
+            {
+                DialogResult dr = MessageBox.Show (string.Format ("These legs belong to multiple trades. Ok to assign to {0}?", trade.Ticker), "Legs with multiple trades", MessageBoxButtons.OKCancel);
+                if (dr != DialogResult.OK)
+                {
+                    return;
+                }
+            }
+
+            /* Trade selected, but update company...
+             * ------------------------------------- */
+
+            //using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            //{
+            //    var stock = (from s in dc.Stocks
+            //                 where s.Ticker == trade.Ticker
+            //                 select new { s.LastTrade, s.Company }
+            //                ).SingleOrDefault ();
+
+            //    if (stock == null)
+            //    {
+            //        MessageBox.Show (string.Format ("The ticker {0} does not exist in the database. Please fix.", trade.Ticker));
+            //        return;
+            //    }
+            //    trade.Company = stock.Company;
+            //    trade.UnderlyingPrice = (double?) stock.LastTrade;
+            //}
+
+            /* Now update the legs
+             * ------------------- */
+
+            trade.TotalDelta = 0;
+            trade.TotalTheta = 0;
+            trade.TotalProfitLoss = 0;
+            trade.DailyProfitLoss = 0;
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+
+                /* Don't really need to use UpsertTrade. Could have used
+                 * just UpdateTrade since the td.Id is never null at this point.
+                 * In fact, I don't even think this needs to be updated at all...
+                 */
+
+                //UpsertTradeResult tr =
+                //    dc.UpsertTrade (td.Id,
+                //                    td.TradeType,
+                //                    td.Ticker,
+                //                    (int) td.OpenCloseStatus,
+                //                    td.Premium,
+                //                    td.Commissions,
+                //                    td.OpenDate,
+                //                    td.ClosedDate,
+                //                    td.TotalDelta,
+                //                    td.TotalTheta,
+                //                    (decimal?) td.TotalProfitLoss,
+                //                    (decimal?) td.ProfitThreshold,
+                //                    td.EmailNotifications,
+                //                    td.Notes,
+                //                    td.LastEmail).Single ();
+
+
+                foreach (LegData ld in trade.m_Legs)
+                {
+                    ld.Trade_id = trade.Id;
+                    UpsertLegResult lr = dc.UpsertLeg (ld.Id, ld.ConId, ld.Ticker, Utils.EquityType2String (ld.Equity), ld.Multiplier, (int) ld.OpenCloseStatus, ld.IfCall, ld.IfSell, ld.Strike, ld.ExpiryDate, ld.OpenPrice, ld.ClosePrice, ld.NoContracts, ld.Commissions, ld.OpenDate, ld.ClosedDate, ld.LastEmail, ld.Trade_id).Single ();
+                    ld.Id = lr.Id;
+                    ld.HookInSignalTrade (trade);
+                }
+
+                UpdateTradeTotalAndDailyProfit (trade);
+                /* Update the daily profit and daily */
+                dc.UpdateTradeProfitLoss (trade.Id, (decimal?) trade.TotalProfitLoss, DateTime.Now, (decimal?) trade.DailyProfitLoss, DateTime.Now);
+            }
+
+//            dgvTrade.InvalidateRow (dgvTrade.CurrentRow.Index);
+//            //dgvLeg.Invalidate ();
+        }
+
+        /***************************************************************
+         * 
+         * LoadTradeGrid
+         * 
+         * ************************************************************/
+
+        private void LoadTradeGrid ()
+        {
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                if (cbTradeOnlyOpenTrades.Checked)
+                {
+                    var trades = (from t in dc.Trades
+                                  join s in dc.Stocks on t.Ticker equals s.Ticker
+                                  where (t.IfClosed != (int) OpenCloseValues.Close) && (t.TradeGroup == m_DataGroupName) 
+                                  select new TradeData (t.TradeId,
+                                     t.Ticker,
+                                     t.TradeType,
+                                     s.Company,
+                                     (OpenCloseValues) t.IfClosed,
+                                     t.Premium,
+                                     t.Commissions,
+                                     t.OpenDate,
+                                     t.ClosedDate,
+                                     t.Delta,
+                                     t.Theta,
+                                     t.TotalProfitLoss, t.TotalProfitLossTimeStamp,
+                                     t.TodayProfitLoss, t.TodayProfitLossTimeStamp,
+                                     t.YesterdayProfitLoss, t.YesterdayProfitLossTimeStamp,
+                                     t.ProfitThreshold,
+                                     t.PriceThreshold,
+                                     t.PriceThresholdAboveBelow,
+                                     t.LastEmail,
+                                     t.EmailNotifications,
+                                     t.Notes)
+                                     ).ToList ();
+                    m_Trades = new SortableBindingList<TradeData> (trades);
+                }
+                else
+                {
+                    var trades = (from t in dc.Trades
+                                  join s in dc.Stocks on t.Ticker equals s.Ticker
+                                  where (t.TradeGroup == m_DataGroupName)
+                                  select new TradeData (t.TradeId,
+                                     t.Ticker,
+                                     t.TradeType,
+                                     s.Company,
+                                     (OpenCloseValues) t.IfClosed,
+                                     t.Premium,
+                                     t.Commissions,
+                                     t.OpenDate,
+                                     t.ClosedDate,
+                                     t.Delta,
+                                     t.Theta,
+                                     t.TotalProfitLoss, t.TotalProfitLossTimeStamp,
+                                     t.TodayProfitLoss, t.TodayProfitLossTimeStamp,
+                                     t.YesterdayProfitLoss, t.YesterdayProfitLossTimeStamp,
+                                     t.ProfitThreshold,
+                                     t.PriceThreshold,
+                                     t.PriceThresholdAboveBelow,
+                                     t.LastEmail,
+                                     t.EmailNotifications,
+                                     t.Notes)
+                                     );
+                    m_Trades = new SortableBindingList<TradeData> (trades);
+                }
+                
+                foreach (var t in m_Trades)
+                {
+
+                    /* Update underlying price
+                     * ----------------------- */
+
+                    var stock = (from s in dc.Stocks
+                                    where s.Ticker == t.Ticker
+                                    select s.LastTrade
+                                ).SingleOrDefault ();
+                    t.UnderlyingPrice = (double?) stock;
+
+                    t.m_Legs.Clear ();
+
+                    var legs = (from l in dc.Legs
+                                where l.Trade_Id == t.Id
+                                select new LegData (l.Id,
+                                                    l.Ticker,
+                                                    Utils.String2EquityType (l.EquityType),
+                                                    l.Multiplier,
+                                                    l.LocalSymbol,
+                                                    l.ConId,
+                                                    (OpenCloseValues) l.IfClosed,
+                                                    l.IfCall,
+                                                    l.IfSell,
+                                                    l.Strike,
+                                                    l.Expiry,
+                                                    l.UndPrice,
+                                                    l.OpenPrice,
+                                                    l.ClosePrice,
+                                                    l.NoContracts,
+                                                    l.Delta,
+                                                    l.Theta,
+                                                    l.Gamma,
+                                                    l.Vega,
+                                                    l.OpenDate,
+                                                    l.ClosedDate,
+                                                    l.ProfitLoss,
+                                                    l.ProfitLossTimeStamp,
+                                                    l.TodayProfitLoss,
+                                                    l.TodayProfitLossTimeStamp,
+                                                    l.YesterdayProfitLoss,
+                                                    l.YesterdayProfitLossTimeStamp,
+                                                    l.ProfitThreshold,
+                                                    l.LastEmail,
+                                                    l.EmailNotifications,
+                                                    l.Trade_Id)
+                                );
+                    foreach (var leg in legs)
+                    {
+
+                        /* Fill in some missing fields
+                         * --------------------------- */
+
+                        if (leg.ExpiryDate != null)
+                        {
+                            int TradingDays;
+                            leg.DaysLeft = Utils.ComputeDaysToExpire ((DateTime) leg.ExpiryDate, out TradingDays);
+                        }
+
+                        // display yesterday's figures for now
+                        //leg.ComputeProfitFigures ();
+                        leg.UpdatePremium ();
+                        leg.UpdateCommissions ();
+
+                        /* May need to update the database, moving current ProfitLoss to YesterdayProfitLoss
+                         * --------------------------------------------------------------------------------- */
+ 
+                        DateTime now = DateTime.Now;
+                        if (Utils.bIfTodayTradingDay)
+                        {
+                            if (leg.ProfitLossTimestamp != null)
+                            {
+                                if (((DateTime) leg.ProfitLossTimestamp).Day != now.Day)
+                                {
+                                    leg.YesterdayProfitLoss = leg.TotalProfitLoss;
+                                    leg.YesterdayProfitLossTimestamp = leg.ProfitLossTimestamp;
+                                    dc.UpdateLegYesterdayProfitLoss (leg.Id, (decimal?) leg.YesterdayProfitLoss, leg.YesterdayProfitLossTimestamp);
+                                }
+                            }
+                        }
+ 
+                        leg.StatusChanged += new LegData.StatusChangeHandler (t.LegStatusChangeHandler);
+                        t.m_Legs.Add (leg);
+
+                        leg.SignalTrade (legcolPREMIUM);
+                    }
+
+                    /* May need to update the database, moving current ProfitLoss to YesterdayProfitLoss
+                      * --------------------------------------------------------------------------------- */
+                     
+                    if (t.TotalProfitLossTimestamp != null)
+                    {
+                        if (((DateTime) t.TotalProfitLossTimestamp).Day != DateTime.Now.Day)
+                        {
+                            t.YesterdayProfitLoss = t.TotalProfitLoss;
+                            t.YesterdayProfitLossTimestamp = t.TotalProfitLossTimestamp;
+                            dc.UpdateTradeYesterdayProfitLoss (t.Id, (decimal?) t.YesterdayProfitLoss, t.YesterdayProfitLossTimestamp);
+                        }
+                    }
+                }
+
+                /* May need to update the database, moving current ProfitLoss to YesterdayProfitLoss
+                 * --------------------------------------------------------------------------------- */
+
+                foreach (var trade in m_Trades)
+                {
+                    DateTime now = DateTime.Now;
+                    if (trade.TotalProfitLossTimestamp != null)
+                    {
+                        if (((DateTime) trade.TotalProfitLossTimestamp).Day != now.Day)
+                        {
+                            trade.YesterdayProfitLoss = trade.TotalProfitLoss;
+                            trade.YesterdayProfitLossTimestamp = trade.TotalProfitLossTimestamp;
+                            dc.UpdateLegYesterdayProfitLoss (trade.Id, (decimal?) trade.YesterdayProfitLoss, trade.YesterdayProfitLossTimestamp);
+                        }
+                    }
+                }
+
+                dgvTrade.AutoGenerateColumns = false;
+                dgvTrade.DataSource = m_Trades;
+
+               /* Highlighting...
+                * --------------- */
+                
+                foreach (DataGridViewRow r in dgvTrade.Rows)
+                {
+                    if (!r.IsNewRow)
+                    {
+                        TradeData trade = m_Trades[r.Index];
+
+                        if (trade.TotalProfitLoss != null)
+                        {
+                            if (trade.TotalProfitLoss < 0.0)
+                            {
+                                r.Cells[trdcolTOTALPROFIT].Style.BackColor = Color.Red;
+                            }
+                            else
+                            {
+                                r.Cells[trdcolTOTALPROFIT].Style.BackColor = Color.Green;
+                            }
+                        }
+
+                        if (trade.DailyProfitLoss != null)
+                        {
+                            if (trade.DailyProfitLoss < 0.0)
+                            {
+                                r.Cells[trdcolDAILYPROFIT].Style.BackColor = Color.Red;
+                            }
+                            else
+                            {
+                                r.Cells[trdcolDAILYPROFIT].Style.BackColor = Color.Green;
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* Update overall delta
+             * -------------------- */
+
+            UpdateOverallDelta ();
+        }
+
+        private void dgvTrade_ColumnWidthChanged (object sender, DataGridViewColumnEventArgs e)
+        {
+            if (bSettingWidthsToBeSaved)
+            {
+                TradeColumnWidths = new System.Collections.Specialized.StringCollection ();
+
+                for (int i = 0; i < dgvTrade.Columns.Count; i++)
+                {
+                    TradeColumnWidths.Add (dgvTrade.Columns[i].Width.ToString ());
+                }
+            }
+        }
+
+        /******************************************************************
+         * 
+         * When current row in Trades has changed
+         * 
+         * ***************************************************************/
+        private void dgvTrade_RowEnter (object sender, DataGridViewCellEventArgs e)
+        {
+            tbNotes.Text = m_Trades[e.RowIndex].Notes;
+
+            double? pt = m_Trades[e.RowIndex].ProfitThreshold;
+            if (pt == null)
+            {
+                tbTradeProfitThreshold.Text = "";
+            }
+            else
+            {
+                tbTradeProfitThreshold.Text = ((double) m_Trades[e.RowIndex].ProfitThreshold).ToString ("C2");
+            }
+
+            pt = m_Trades[e.RowIndex].PriceThreshold;
+            if (pt == null)
+            {
+                tbTradePriceLevel.Text = "";
+            }
+            else
+            {
+                tbTradePriceLevel.Text = ((double) m_Trades[e.RowIndex].PriceThreshold).ToString ("C2");
+            }
+            lbEnTradeAboveBelow.SelectedIndex = m_Trades[e.RowIndex].PriceThresholdAboveBelow ? 0 : 1;
+
+            ShowTradeEmailNotifications (m_Trades[e.RowIndex].EmailNotifications);
+            m_bTradeProfitThresholdDirty = false;
+            m_bTradePriceThresholdDirty = false;
+            m_bTradeEmailNotificationsDirty = false;
+            m_bNotesDirty = false;
+
+            LoadLegsGrid (m_Trades[e.RowIndex]);
+            if (m_Trades[e.RowIndex].m_Legs.Count > 0)
+            {
+                ShowLegEmailNotifications (m_Trades[e.RowIndex].m_Legs[0].EmailNotifications);
+            }
+        }
+
+        /******************************************************************
+         * 
+         * If notes has changed, remember
+         * 
+         * ***************************************************************/
+
+        private void tbNotes_TextChanged (object sender, EventArgs e)
+        {
+            m_bNotesDirty = true;
+        }
+
+        /******************************************************************
+         * 
+         * If Notes has changed
+         * 
+         * ***************************************************************/
+
+        private void tbNotes_Leave (object sender, EventArgs e)
+        {
+            if (m_bNotesDirty)
+            {
+                if (dgvTrade.CurrentRow.IsNewRow)
+                {
+                    return;
+                }
+
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+                tr.Notes = tbNotes.Text;
+
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var trade = (from t in dc.Trades
+                                 where t.TradeId == tr.Id
+                                 select t).Single ();
+                    trade.Notes = tr.Notes;
+                    dc.SubmitChanges ();
+                }
+            }
+        }
+
+        /******************************************************************
+        * 
+        * If profit threshold has changed, remember
+        * 
+        * ***************************************************************/
+
+        private void tbTradeProfitThreshold_TextChanged (object sender, EventArgs e)
+        {
+            m_bTradeProfitThresholdDirty = true;
+        }
+
+        private void tbTradeProfitThreshold_Leave (object sender, EventArgs e)
+        {
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                return;
+            }
+
+            if (m_bTradeProfitThresholdDirty)
+            {
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+
+                double pt;
+                string text = tbTradeProfitThreshold.Text.TrimStart (new char[] { ' ', '$' });
+                if (double.TryParse (text, out pt))
+                {
+                    tr.ProfitThreshold = pt;
+                }
+                else
+                {
+                    tr.ProfitThreshold = null;
+                }
+
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var trade = (from t in dc.Trades
+                                    where t.TradeId == tr.Id
+                                    select t).Single ();
+                    trade.ProfitThreshold = (decimal?) tr.ProfitThreshold;
+                    dc.SubmitChanges ();
+                }
+            }
+        }
+
+        /******************************************************************
+        * 
+        * If price rises above or below a price threshold, remember
+        * 
+        * ***************************************************************/
+        private void tbEnTradePriceLevel_TextChanged (object sender, EventArgs e)
+        {
+            m_bTradePriceThresholdDirty = true;
+
+        }
+
+        private void tbEnTradePriceLevel_Leave (object sender, EventArgs e)
+        {
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                return;
+            }
+
+            if (m_bTradePriceThresholdDirty)
+            {
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+
+                double pt;
+                string text = tbTradePriceLevel.Text.TrimStart (new char[] { ' ', '$' });
+                if (double.TryParse (text, out pt))
+                {
+                    tr.PriceThreshold = pt;
+                }
+                else
+                {
+                    tr.PriceThreshold = null;
+                }
+
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var trade = (from t in dc.Trades
+                                    where t.TradeId == tr.Id
+                                    select t).Single ();
+                    trade.PriceThreshold = (decimal?) tr.PriceThreshold;
+                    trade.PriceThresholdAboveBelow = tr.PriceThresholdAboveBelow;
+                    dc.SubmitChanges ();
+                }
+            }
+        }
+
+        /*************************************************************
+         * 
+         * User has changed Above/Below price threshold
+         * 
+         * **********************************************************/
+
+        //private void lbEnTradeAboveBelow_SelectedIndexChanged (object sender, EventArgs e)
+        //{
+        //    if (dgvTrade.CurrentRow != null)
+        //    {
+        //        TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+        //        tr.PriceThresholdAboveBelow = (lbEnTradeAboveBelow.SelectedIndex == 0);
+        //        using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+        //        {
+        //            var trade = (from t in dc.Trades
+        //                         where t.TradeId == tr.Id
+        //                         select t).Single ();
+        //            trade.PriceThresholdAboveBelow = tr.PriceThresholdAboveBelow;
+        //            dc.SubmitChanges ();
+        //        }
+        //    }
+        //}
+
+        private void lbEnTradeAboveBelow_Enter (object sender, EventArgs e)
+        {
+            if (dgvTrade.CurrentRow != null)
+            {
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+                lbEnTradeAboveBelow.SelectedIndex = tr.PriceThresholdAboveBelow ? 0 : 1;
+            }
+        }
+
+        private void lbEnTradeAboveBelow_Leave (object sender, EventArgs e)
+        {
+            if (dgvTrade.CurrentRow != null)
+            {
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+                tr.PriceThresholdAboveBelow = (lbEnTradeAboveBelow.SelectedIndex == 0);
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var trade = (from t in dc.Trades
+                                 where t.TradeId == tr.Id
+                                 select t).Single ();
+                    trade.PriceThresholdAboveBelow = tr.PriceThresholdAboveBelow;
+                    dc.SubmitChanges ();
+                }
+            }
+
+        }
+
+
+ 
+        /*******************************************************
+         * 
+         * ShowEmailNotifications
+         * 
+         * ****************************************************/
+
+        void ShowTradeEmailNotifications (int notifications)
+        {
+            //cbEnITM.Checked = false;
+            //if ((notifications & enITM) == enITM)
+            //{
+            //    cbEnITM.Checked = true;
+            //}
+            //cbEnNEAR_ITM.Checked = false;
+            //if ((notifications & enNEAR_ITM) == enNEAR_ITM)
+            //{
+            //    cbEnNEAR_ITM.Checked = true;
+            //}
+            cbEnTradePROFITABLE.Checked = false;
+            if ((notifications & Utils.enPROFITABLE) == Utils.enPROFITABLE)
+            {
+                cbEnTradePROFITABLE.Checked = true;
+            }
+            cbEnTradePRICE.Checked = false;
+            if ((notifications & Utils.enPRICE) == Utils.enPRICE)
+            {
+                cbEnTradePRICE.Checked = true;
+            }
+        }
+
+        void ShowLegEmailNotifications (int notifications)
+        {
+            cbEnLegITM.Checked = false;
+            if ((notifications & Utils.enITM) == Utils.enITM)
+            {
+                cbEnLegITM.Checked = true;
+            }
+            cbEnLegNEAR_ITM.Checked = false;
+            if ((notifications & Utils.enNEAR_ITM) == Utils.enNEAR_ITM)
+            {
+                cbEnLegNEAR_ITM.Checked = true;
+            }
+            cbEnLegPROFITABLE.Checked = false;
+            if ((notifications & Utils.enPROFITABLE) == Utils.enPROFITABLE)
+            {
+                cbEnLegPROFITABLE.Checked = true;
+            }
+        }
+
+        /*********************************************
+        * 
+        * Checkbox notification changed (clicked)
+        * 
+        * ******************************************/
+
+        private void cbEnTradePROFITABLE_Click (object sender, EventArgs e)
+        {
+            m_bTradeEmailNotificationsDirty = true;
+        }
+
+        private void cbEnTradePRICE_Click (object sender, EventArgs e)
+        {
+            m_bTradeEmailNotificationsDirty = true;
+        }
+
+        /*********************************************
+         * 
+         * Checkbox notification changed
+         * 
+         * ******************************************/
+
+        private void cbEn_Clicked (object sender, EventArgs e)
+        {
+            m_bLegEmailNotificationsDirty = true;
+        }
+
+        /*********************************************
+         * 
+         * Leaving leg checkbox area
+         * 
+         * ******************************************/
+
+        private void gbLegNotifications_Leave (object sender, EventArgs e)
+        {
+            if (m_bLegEmailNotificationsDirty)
+            {
+                UpdateLegEmailNotifications ();
+            }
+        }
+
+        /**********************************************
+         * 
+         * Leaving trade profit checkbox area
+         * 
+         * *******************************************/
+
+        private void RecordTradeCheckBoxes (object sender, EventArgs e)
+        {
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                return;
+            }
+
+            if (m_bTradeEmailNotificationsDirty)
+            {
+                int n = 0;
+
+                if (cbEnTradePROFITABLE.Checked)
+                {
+                    n |= Utils.enPROFITABLE;
+                }
+                if (cbEnTradePRICE.Checked)
+                {
+                    n |= Utils.enPRICE;
+                }
+
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+                tr.EmailNotifications = n;
+
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var trade = (from t in dc.Trades
+                                 where t.TradeId == tr.Id
+                                 select t).Single ();
+                    trade.EmailNotifications = n;
+                    dc.SubmitChanges ();
+                }
+            }
+        }
+ 
+
+         /**********************************************
+         * 
+         * Leaving leg checkbox area
+         * 
+         * *******************************************/
+       private void UpdateLegEmailNotifications ()
+        {
+           if (dgvLeg.CurrentRow == null)
+           {
+               return;
+           }
+           if (dgvTrade.CurrentRow == null)
+           {
+               return;
+           }
+           if (dgvLeg.CurrentRow.IsNewRow)
+           {
+               return;
+           }
+
+           //if (m_bLegEmailNotificationsDirty)
+            {
+                int n = 0;
+                if (cbEnLegITM.Checked)
+                {
+                    n |= Utils.enITM;
+                }
+                if (cbEnLegNEAR_ITM.Checked)
+                {
+                    n |= Utils.enNEAR_ITM;
+                }
+                if (cbEnLegPROFITABLE.Checked)
+                {
+                    n |= Utils.enPROFITABLE;
+                }
+
+               if (dgvTrade.CurrentRow.IsNewRow)
+               {
+                   return;
+               }
+               TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];
+               trade.m_Legs[dgvLeg.CurrentRow.Index].EmailNotifications = n;
+
+                m_Trades[dgvTrade.CurrentRow.Index].EmailNotifications = n;
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var leg = (from t in dc.Legs
+                               where t.Id == trade.m_Legs[dgvLeg.CurrentRow.Index].Id
+                                 select t).Single ();
+                    leg.EmailNotifications = n;
+                    dc.SubmitChanges ();
+                }
+            }
+        }
+
+        /*******************************************
+         * 
+         * Leg ProfitThreshold has changed
+         * 
+         * ****************************************/
+
+       private void tbLegProfitThreshold_TextChanged (object sender, EventArgs e)
+       {
+            m_bLegProfitThresholdDirty = true;
+       }
+
+       /*******************************************
+         * 
+         * leaving Leg ProfitThreshold
+         * 
+         * ****************************************/
+
+       private void tbLegProfitThreshold_Leave (object sender, EventArgs e)
+       {
+            if (dgvLeg.CurrentRow.IsNewRow)
+            {
+                return;
+            }
+
+            if (m_bLegProfitThresholdDirty)
+            {
+                if (dgvTrade.CurrentRow.IsNewRow)
+                {
+                    return;
+                }
+
+                TradeData tr = m_Trades[dgvTrade.CurrentRow.Index];
+                LegData l = tr.m_Legs[dgvLeg.CurrentRow.Index];
+
+                double pt;
+                if (double.TryParse (tbLegProfitThreshold.Text, out pt))
+                {
+                    l.ProfitThreshold = pt;
+
+                    using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                    {
+                        var leg = (from t in dc.Legs
+                                   where t.Id == l.Id
+                                   select t).Single ();
+                        leg.ProfitThreshold = (decimal?) pt;
+                        dc.SubmitChanges ();
+                    }
+                }
+            }
+       }
+
+
+        /**************************************************************
+         * 
+         * Save to DB
+         * 
+         * ***********************************************************/
+
+        private void btnTradeSave_Click (object sender, EventArgs e)
+        {
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                foreach (TradeData td in m_Trades)
+                {
+                    dc.UpsertTrade (td.Id,
+                                    m_DataGroupName,
+                                    td.TradeType,
+                                    td.Ticker,
+                                    (int) td.OpenCloseStatus,
+                                    td.Premium,
+                                    td.Commissions,
+                                    td.OpenDate,
+                                    td.ClosedDate,
+                                    td.TotalDelta,
+                                    td.TotalTheta,
+                                    (decimal?) td.TotalProfitLoss,
+                                    //(decimal?) td.DailyProfitLoss,
+                                    (decimal?) td.ProfitThreshold,
+                                    td.EmailNotifications,
+                                    td.Notes,
+                                    td.LastEmail);
+                }
+            }
+        }
+
+        /********************************************************
+         * 
+         * Explicitly reload trade grid
+         * 
+         * *****************************************************/
+
+        private void btnTradeFromDB_Click (object sender, EventArgs e)
+        {
+            LoadTradeGrid ();
+        }
+
+        /******************************************************
+         * 
+         * Delete selected trades
+         * 
+         * ***************************************************/
+
+        private void btnTradeDelete_Click (object sender, EventArgs e)
+        {
+            if (cbActivateSelected.Checked || cbActivateAll.Checked)
+            {
+                MessageBox.Show ("Cannot delete a trade while actively collecting data");
+                return;
+            }
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                foreach (DataGridViewRow row in dgvTrade.SelectedRows)
+                {
+                    DialogResult rc = MessageBox.Show (string.Format ("Confirm deletion of trade involving {0} is OK", m_Trades[row.Index].Ticker), "Deleting trade", MessageBoxButtons.OKCancel);
+                    if (rc != DialogResult.OK)
+                    {
+                        continue;
+                    }
+                    var legs = (from l in dc.Legs
+                                where l.Trade_Id == m_Trades[row.Index].Id
+                                select l    
+                                ).ToList ();
+                    foreach (var leg in legs)
+                    {
+                        dc.Legs.DeleteOnSubmit (leg);
+                    }
+                    var trade = (from t in dc.Trades
+                                 where t.TradeId == m_Trades[row.Index].Id
+                                 select t
+                                ).Single ();
+                    dc.Trades.DeleteOnSubmit (trade);
+                }
+                dc.SubmitChanges ();
+            }
+            LoadTradeGrid ();
+        }
+
+        /**********************************************************
+         * 
+         * Load Legs Grid
+         * 
+         * *******************************************************/
+
+        void LoadLegsGrid (TradeData trade)
+        {
+            dgvLeg.AutoGenerateColumns = false;
+            dgvLeg.DataSource = trade.m_Legs;
+
+            foreach (DataGridViewRow r in dgvLeg.Rows)
+            {
+                if (!r.IsNewRow)
+                {
+                    LegData leg = trade.m_Legs[r.Index];
+
+                    /* Use appropriate highlight
+                     * ------------------------- */
+
+                    hlLegProbabilityITM (trade, leg);
+
+                    hlLegProfitLoss (r, leg);
+                }
+            }
+        }
+
+        /*****************************************************
+         * 
+         * Highlight appropriate Leg ProfitLoss column
+         * 
+         * **************************************************/
+
+        private void hlLegProfitLoss (DataGridViewRow row, LegData leg)
+        {
+            if (leg.TotalProfitLoss != null)
+            {
+                if (leg.TotalProfitLoss < 0.0)
+                {
+                    row.Cells[legcolTOTALPROFIT].Style.BackColor = Color.Red;
+                }
+                else
+                {
+                    row.Cells[legcolTOTALPROFIT].Style.BackColor = Color.Green;
+                }
+                dgvLeg.InvalidateCell (row.Cells[legcolTOTALPROFIT]);
+
+            }
+
+            if (leg.DailyProfitLoss != null)
+            {
+                if (leg.DailyProfitLoss < 0.0)
+                {
+                    row.Cells[legcolDAILYPROFIT].Style.BackColor = Color.Red;
+                }
+                else
+                {
+                    row.Cells[legcolDAILYPROFIT].Style.BackColor = Color.Green;
+                }
+                dgvLeg.InvalidateCell (row.Cells[legcolDAILYPROFIT]);
+            }
+
+        }
+        /**************************************************************
+         * 
+         * User is attempting to delete a leg row
+         * 
+         * ***********************************************************/
+
+        private void dgvLeg_UserDeletingRow (object sender, DataGridViewRowCancelEventArgs e)
+        {
+            if (cbActivateSelected.Checked || cbActivateAll.Checked)
+            {
+                MessageBox.Show ("Cannot delete a leg while actively collecting data");
+                e.Cancel = true;
+                return;
+            }
+
+            TradeData trade = null;
+
+            if (!dgvTrade.CurrentRow.IsNewRow)
+            {
+                trade = m_Trades[dgvTrade.CurrentRow.Index];
+            }
+
+            int index = e.Row.Index;
+            DialogResult rc = MessageBox.Show (string.Format ("Are you sure you want to delete leg {0} {1} {2}?", trade.m_Legs[index].Ticker, trade.m_Legs[index].IfCall ? "Call" : "Put", trade.m_Legs[index].IfSell ? "Sell" : "Buy"), "Confirm Leg Deletion", MessageBoxButtons.YesNo);
+            if (rc != DialogResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if (trade.m_Legs[index].Id == null)
+            {
+                // Nothing to delete. Probably was editing this line and changed my mind
+                return;
+            }
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                var dataleg = (from l in dc.Legs
+                           where l.Id == trade.m_Legs[index].Id
+                           select l).Single ();
+                dc.Legs.DeleteOnSubmit (dataleg);
+                dc.SubmitChanges ();
+
+                var leg = (from r in trade.m_Legs
+                           where r.Id == dataleg.Id
+                           select r).Single ();
+            }
+        }
+
+        /**************************************************************
+         * 
+         * User is attempting to delete a trade row
+         * 
+         * ***********************************************************/
+
+        private void dgvTrade_UserDeletingRow (object sender, DataGridViewRowCancelEventArgs e)
+        {
+            if (cbActivateSelected.Checked || cbActivateAll.Checked)
+            {
+                MessageBox.Show ("Cannot delete a trade while actively collecting data");
+                return;
+            }
+
+            int index = e.Row.Index;
+            DialogResult rc = MessageBox.Show (string.Format ("Are you sure you want to delete trade {0} and all legs?", m_Trades[index].Ticker), "Confirm Trade Deletion", MessageBoxButtons.YesNo);
+            if (rc != DialogResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                var legs = (from l in dc.Legs
+                            where l.Trade_Id == m_Trades[index].Id
+                            select l
+                            ).ToList ();
+                foreach (var leg in legs)
+                {
+                    dc.Legs.DeleteOnSubmit (leg);
+                }
+                var trade = (from t in dc.Trades
+                             where t.TradeId == m_Trades[index].Id
+                             select t
+                            ).Single ();
+                dc.Trades.DeleteOnSubmit (trade);
+                dc.SubmitChanges ();
+            }
+        }
+
+        /**************************************************************
+          * 
+          * User has deleted a trade row
+          * 
+          * ***********************************************************/
+
+        private void dgvTrade_UserDeletedRow (object sender, DataGridViewRowEventArgs e)
+        {
+            LoadTradeGrid ();
+        }
+
+        /*****************************************************
+         * 
+         * Activate selected trades
+         * 
+         * **************************************************/
+        private void cbActivateSelected_CheckedChanged (object sender, EventArgs e)
+        {
+            if (cbActivateAll.Checked)
+            {
+                cbActivateAll.Checked = false;
+                cbActivateAll_CheckedChanged (null, null); // turn off other button
+            }
+
+            if (cbActivateSelected.Checked)
+            {
+                axTws.contractDetailsEx += axTws_contractDetailsEx;
+                axTws.contractDetailsEnd += axTws_contractDetailsEnd;
+
+                axTws.tickEFP += axTws_tickEFP;
+                axTws.tickGeneric += axTws_tickGeneric;
+                axTws.tickOptionComputation += axTws_tickOptionComputation;
+                axTws.tickPrice += axTws_tickPrice;
+                axTws.tickSize += axTws_tickSize;
+                axTws.tickSnapshotEnd += axTws_tickSnapshotEnd;
+                axTws.tickString += axTws_tickString;
+
+                timerLeg.Enabled = true;
+
+                m_ActiveLegs = new List<LegData> ();
+
+                foreach (DataGridViewRow r in dgvTrade.SelectedRows)
+                {
+                    ActivateTrade (m_Trades[r.Index]);
+                }
+            }
+            else
+            {
+                axTws.contractDetailsEx -= axTws_contractDetailsEx;
+                axTws.contractDetailsEnd -= axTws_contractDetailsEnd;
+
+                axTws.tickEFP -= axTws_tickEFP;
+                axTws.tickGeneric -= axTws_tickGeneric;
+                axTws.tickOptionComputation -= axTws_tickOptionComputation;
+                axTws.tickPrice -= axTws_tickPrice;
+                axTws.tickSize -= axTws_tickSize;
+                axTws.tickSnapshotEnd -= axTws_tickSnapshotEnd;
+                axTws.tickString -= axTws_tickString;
+
+                timerLeg.Enabled = false;
+
+                for (int i = 0; i < m_ActiveLegs.Count; i++)
+                {
+                    if (m_ActiveLegs[i].bIfUpdatingMarketData)
+                    {
+                        axTws.cancelMktData (i | Utils.ibLEG);
+                        m_ActiveLegs[i].bIfUpdatingMarketData = false;
+                    }
+                }
+                m_ActiveLegs = null;
+            }
+        }
+
+        /*****************************************************
+        * 
+        * Activate all trades
+        * 
+        * **************************************************/
+
+        private void cbActivateAll_CheckedChanged (object sender, EventArgs e)
+        {
+            if (cbActivateSelected.Checked)
+            {
+                cbActivateSelected.Checked = false;
+                cbActivateSelected_CheckedChanged (null, null); //turn off other button
+            }
+
+            if (cbActivateAll.Checked)
+            {
+                axTws.contractDetailsEx +=axTws_contractDetailsEx;
+                axTws.contractDetailsEnd += axTws_contractDetailsEnd;
+
+                axTws.tickEFP += axTws_tickEFP;
+                axTws.tickGeneric += axTws_tickGeneric;
+                axTws.tickOptionComputation += axTws_tickOptionComputation;
+                axTws.tickPrice += axTws_tickPrice;
+                axTws.tickSize += axTws_tickSize;
+                axTws.tickSnapshotEnd +=axTws_tickSnapshotEnd;
+                axTws.tickString += axTws_tickString;
+
+                timerLeg.Enabled = true;
+
+                m_ActiveLegs = new List<LegData> ();
+
+                foreach (var t in m_Trades)
+                {
+                    ActivateTrade (t);
+                }
+            }
+            else
+            {
+                axTws.contractDetailsEx -= axTws_contractDetailsEx;
+                axTws.contractDetailsEnd -= axTws_contractDetailsEnd;
+
+                axTws.tickEFP -= axTws_tickEFP;
+                axTws.tickGeneric -= axTws_tickGeneric;
+                axTws.tickOptionComputation -= axTws_tickOptionComputation;
+                axTws.tickPrice -= axTws_tickPrice;
+                axTws.tickSize -= axTws_tickSize;
+                axTws.tickSnapshotEnd -= axTws_tickSnapshotEnd;
+                axTws.tickString -= axTws_tickString;
+
+                timerLeg.Enabled = false;
+
+                for (int i = 0; i < m_ActiveLegs.Count; i++)
+                {
+                    if (m_ActiveLegs[i].bIfUpdatingMarketData)
+                    {
+                        axTws.cancelMktData (i | Utils.ibLEG);
+                        m_ActiveLegs[i].bIfUpdatingMarketData = false;
+                    }
+                }
+                m_ActiveLegs = null;
+            }
+
+        }
+ 
+        /*****************************************************
+        * 
+        * Activate a specific trade trades
+        * 
+        * **************************************************/
+
+        private void ActivateTrade (TradeData trade)
+        {
+            foreach (var leg in trade.m_Legs)
+            {
+                if (leg.ConId == null)
+                {
+                    TWSLib.IContract contract = axTws.createContract ();
+
+                    if (leg.Equity == EquityType.Option)
+                    {
+                        if (leg.Strike == null)
+                        {
+                            continue;
+                        }
+
+                        contract.symbol = Utils.Massage (leg.Ticker);
+                        contract.secType = "OPT";
+                        contract.expiry = ((DateTime) leg.ExpiryDate).ToString ("yyyyMMdd");
+                        contract.strike = (double) leg.Strike;
+                        contract.right = leg.IfCall ? "C" : "P";
+                        contract.multiplier = "";
+                        contract.exchange = "SMART";
+                        contract.primaryExchange = "";
+                        contract.currency = "USD";
+                        contract.localSymbol = "";
+                        contract.includeExpired = 0;
+                    }
+                    else if (leg.Equity == EquityType.Stock)
+                    {
+                        contract.secType = "STK";
+                        contract.exchange = "SMART";
+                        contract.primaryExchange = "";
+                        contract.currency = "USD";
+                        contract.localSymbol = "";
+                        contract.includeExpired = 0;
+                    }
+
+                    m_Log.Log (ErrorLevel.logDEB, string.Format ("Getting option for {0}, {1} strike: {2}", leg.Ticker, leg.IfCall ? "Call" : "Put", leg.Strike));
+                    m_ActiveLegs.Add (leg);
+
+                    axTws.reqContractDetailsEx ((m_ActiveLegs.Count - 1) | Utils.ibLEG, contract);
+                }
+                else
+                {
+                    m_ActiveLegs.Add (leg);
+                    if (leg.OpenCloseStatus != OpenCloseValues.Close)
+                    {
+                        FetchLegMarketData (m_ActiveLegs.Count - 1);
+                    }
+                }
+            }
+        }
+
+        private void FetchLegMarketData (int index)
+        {
+            axTws.reqMarketDataType (cbTradeFrozenData.Checked ? 2 : 1);
+
+            TWSLib.IContract contract = axTws.createContract ();
+
+            LegData leg = m_ActiveLegs[index];
+
+            contract.symbol = "";
+            if (leg.Equity == EquityType.Stock)
+            {
+                contract.secType = "STK";
+                contract.symbol = leg.Ticker;
+            }
+            else
+            {
+                contract.secType = "OPT";
+            }
+            contract.exchange = "SMART";
+            contract.conId = (int) leg.ConId;
+
+            m_Log.Log (ErrorLevel.logDEB, string.Format ("reqMktDataEx {0} {7} {1} {3} {4} {5} {6:N2} conid: {2}", 
+                                                        index.ToString (), 
+                                                        contract.localSymbol, 
+                                                        contract.conId, 
+                                                        leg.Ticker, 
+                                                        leg.IfCall ? "Call" : "Put", 
+                                                        leg.IfSell ? "Sell" : "Buy", 
+                                                        leg.Strike,
+                                                        leg.Equity == EquityType.Option ? "OPT" : "STK"));
+
+            leg.bIfUpdatingMarketData = true;
+
+            if (cbTradeSnapshot.Checked)
+            {
+                axTws.reqMktDataEx (Utils.ibLEG | index, contract, "", 1, null);
+            }
+            else
+            {
+                axTws.reqMktDataEx (Utils.ibLEG | index, contract, "106", 0, null);
+            }
+        }
+
+        /**************************************************************
+          * 
+          * Timer fired, so save last ProfitLoss and timestamp
+          * 
+          * ***********************************************************/
+
+        private void timerLeg_Tick (object sender, EventArgs e)
+        {
+            UpdateOverallDelta ();
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                foreach (var trade in m_Trades)
+                {
+                    if (trade.OpenCloseStatus != OpenCloseValues.Close)
+                    {
+                        dc.UpdateTradeProfitLoss (trade.Id, (decimal?) trade.TotalProfitLoss, trade.TotalProfitLossTimestamp, (decimal?) trade.DailyProfitLoss, trade.DailyProfitLossTimestamp);
+                    }
+
+                    if (trade.UnderlyingPrice != null)
+                    {
+                        dc.ExecuteCommand ("UPDATE Stock SET LastTrade = {0:F2} WHERE Ticker = {1}", (double) trade.UnderlyingPrice, trade.Ticker);
+                    }
+                    foreach (var leg in trade.m_Legs)
+                    {
+                        if (leg.OpenCloseStatus == OpenCloseValues.Open)
+                        {
+                            if (leg.ProfitLossTimestamp != null) // then the profit/loss has been computed
+                            {
+                                dc.UpdateLegGreeks (leg.Id, leg.Delta, leg.Theta, leg.Gamma, leg.Vega);
+                                dc.UpdateLegUndPrice (leg.Id, (decimal?) leg.UnderlyingPrice);
+                                dc.UpdateLegProfitLoss (leg.Id, (decimal?) leg.TotalProfitLoss, leg.ProfitLossTimestamp, (decimal?) leg.DailyProfitLoss, leg.DailyProfitLossTimestamp);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /*************************************************************
+         * 
+         * UpdateOverallDelta
+         * 
+         * **********************************************************/
+
+        private void UpdateOverallDelta ()
+        {
+            double? delta = 0;
+            foreach (var trade in m_Trades)
+            {
+                foreach (var leg in trade.m_Legs)
+                {
+                    if (leg.OpenCloseStatus != OpenCloseValues.Close)
+                    {
+                        delta += leg.TotalDelta;
+                    }
+                }
+            }
+
+            if (delta == null)
+            {
+                lbOverallDelta.Text = "---";
+            }
+            else
+            {
+                lbOverallDelta.Text = ((double) delta).ToString ("F2");
+            }
+        }
+
+        /**************************************************************
+         * 
+         * One of the legs of the specified trade has changed
+         * 
+         * One of the legs of this trade has signaled a change
+         * 
+         * Improvements can be made here to check to see whether the value
+         * has changed before invalidating the cell.
+         * 
+         * ***********************************************************/
+
+        internal void LegStatusChanged (TradeData trade, LegData leg, int col)
+        {
+            //m_Log.Log (ErrorLevel.logDEB, string.Format ("LegStatusChanged for trade {0}, leg {1} {2} {3}, column {4}", trade.Ticker, leg.Ticker, leg.IfCall ? "Call" : "Put", leg.Strike, col));
+            switch (col)
+            {
+                case legcolUNDPRICE:
+                    if (trade.UnderlyingPrice == leg.UnderlyingPrice)
+                    {
+                        break;
+                    }
+
+                    trade.UnderlyingPrice = leg.UnderlyingPrice;
+                    foreach (DataGridViewRow r in dgvTrade.Rows)
+                    {
+                        if (trade == (TradeData) r.DataBoundItem)
+                        {
+                            dgvTrade.InvalidateCell (r.Cells[trdcolUNDPRICE]);
+
+
+                            /* Check price threshold crossed
+                            * ------------------------------ */
+
+                            if ((trade.EmailNotifications & Utils.enPRICE) == Utils.enPRICE)
+                            {
+                                if ( (trade.PriceThresholdAboveBelow && (trade.UnderlyingPrice > trade.PriceThreshold))
+                                     ||
+                                     (!trade.PriceThresholdAboveBelow && (trade.UnderlyingPrice < trade.PriceThreshold))
+                                   )
+                                { 
+                                    string note = string.Format ("Trade {0} price is now {1} {2:C2}. Currently trading at {3:C2}", trade.Ticker, trade.PriceThresholdAboveBelow ? "above" : "below", trade.PriceThreshold, trade.UnderlyingPrice);
+
+                                    trade.EmailBrian (note, new TimeSpan (1, 0, 0));
+                                    //trade.EmailBrian (note, new TimeSpan (0, 5, 0));
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    break;
+
+                case legcolPREMIUM:
+                    {
+                        trade.ComputePremium ();
+
+                        foreach (DataGridViewRow r in dgvTrade.Rows)
+                        {
+                            if (trade == (TradeData) r.DataBoundItem)
+                            {
+                                dgvTrade.InvalidateCell (r.Cells[trdcolPREMIUM]);
+                                break;
+                            }
+                        } 
+                    }
+                    break;
+
+                case legcolDELTA:
+                    {
+                        trade.ComputeDelta ();
+
+                        foreach (DataGridViewRow r in dgvTrade.Rows)
+                        {
+                            if (trade == (TradeData) r.DataBoundItem)
+                            {
+                                dgvTrade.InvalidateCell (r.Cells[trdcolDELTA]);
+                                break;
+                            }
+                        }
+                    }
+                    break;
+
+                case legcolTHETA:
+                    {
+                        trade.ComputeTheta ();
+                        trade.ComputeThetaVegaRatio ();
+
+                        for (int row = 0; row < dgvTrade.Rows.Count; row++)
+                        {
+                            TradeData tr = (TradeData) dgvTrade.Rows[row].DataBoundItem;
+                            if (trade == tr)
+                            {
+                                dgvTrade.InvalidateCell (trdcolTHETA, row);
+                                dgvTrade.InvalidateCell (trdcolTHETAVEGARATIO, row);
+                                break;
+                            }
+                        }
+
+
+                    }
+                    break;
+
+                case legcolVEGA:
+                    {
+                        trade.ComputeVega ();
+                        trade.ComputeThetaVegaRatio ();
+
+                        for (int row = 0; row < dgvTrade.Rows.Count; row++)
+                        {
+                            TradeData tr = (TradeData) dgvTrade.Rows[row].DataBoundItem;
+                            if (trade == tr)
+                            {
+                                dgvTrade.InvalidateCell (trdcolVEGA, row);
+                                dgvTrade.InvalidateCell (trdcolTHETAVEGARATIO, row);
+                                break;
+                            }
+                        }
+                    }
+                    break;
+
+                case legcolTOTALPROFIT:
+                    {
+                        UpdateTradeTotalAndDailyProfit (trade);
+
+                        /* Update Total Daily Profits
+                         * --------------------------*/
+
+                        double total = 0;
+                        double daily = 0;
+                        foreach (TradeData tr in m_Trades)
+                        {
+                            if (tr.TotalProfitLoss != null)
+                            {
+                                total += (double) tr.TotalProfitLoss;
+                            }
+                            if (tr.DailyProfitLoss != null)
+                            {
+                                daily += (double) tr.DailyProfitLoss;
+                            }
+                        }
+                        Color c = tbTotalProfitLoss.BackColor;
+                        if (total > 0)
+                        {
+                            if (c != Color.Green)
+                            {
+                                tbTotalProfitLoss.BackColor = Color.Green;
+                            }
+                        }
+                        else
+                        {
+                            if (c != Color.Red)
+                            {
+                                tbTotalProfitLoss.BackColor = Color.Red;
+                            }
+                        }
+                        c = tbDailyProfitLoss.BackColor;
+                        if (daily > 0)
+                        {
+                            if (c != Color.Green)
+                            {
+                                tbDailyProfitLoss.BackColor = Color.Green;
+                            }
+                        }
+                        else
+                        {
+                            if (c != Color.Red)
+                            {
+                                tbDailyProfitLoss.BackColor = Color.Red;
+                            }
+                        } 
+                        tbTotalProfitLoss.Text = total.ToString ("C0");
+                        tbDailyProfitLoss.Text = daily.ToString ("C0");
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /*******************************************************************
+         * 
+         * UpdateTradeTotalAndDailyProfit
+         * 
+         * ****************************************************************/
+
+        private void UpdateTradeTotalAndDailyProfit (TradeData trade)
+        {
+            trade.TotalProfitLoss = 0;
+            trade.DailyProfitLoss = 0;
+
+            foreach (var l in trade.m_Legs)
+            {
+                //if (l.TotalProfitLoss == null)
+                //{
+                //    l.ComputeProfitFigures (); // really shouldn't be necessary
+                //}
+                trade.TotalProfitLoss += l.TotalProfitLoss;
+                if (l.OpenCloseStatus != OpenCloseValues.Close)
+                {
+                    trade.DailyProfitLoss += l.DailyProfitLoss;
+                }
+                trade.TotalProfitLossTimestamp = DateTime.Now;
+            }
+
+            for (int i = 0; i < dgvTrade.Rows.Count; i++)
+            {
+                DataGridViewRow r = dgvTrade.Rows[i];
+                if (!r.IsNewRow)
+                {
+                    if (trade == m_Trades[r.Index])
+                    {
+
+                        /* Use appropriate highlight
+                         * ------------------------- */
+
+                        if (trade.TotalProfitLoss != null)
+                        {
+                            if (trade.TotalProfitLoss < 0.0)
+                            {
+                                r.Cells[trdcolTOTALPROFIT].Style.BackColor = Color.Red;
+                            }
+                            else
+                            {
+                                r.Cells[trdcolTOTALPROFIT].Style.BackColor = Color.Green;
+                            }
+                        }
+
+                        if (trade.DailyProfitLoss != null)
+                        {
+                            if (trade.DailyProfitLoss < 0.0)
+                            {
+                                r.Cells[trdcolDAILYPROFIT].Style.BackColor = Color.Red;
+                            }
+                            else
+                            {
+                                r.Cells[trdcolDAILYPROFIT].Style.BackColor = Color.Green;
+                            }
+                        }
+                        dgvTrade.InvalidateCell (r.Cells[trdcolTOTALPROFIT]);
+                        dgvTrade.InvalidateCell (r.Cells[trdcolDAILYPROFIT]);
+
+                        /* Check profit threshold
+                         * ---------------------- */
+
+                        if ((trade.EmailNotifications & Utils.enPROFITABLE) == Utils.enPROFITABLE)
+                        {
+                            if (trade.TotalProfitLoss > trade.ProfitThreshold)
+                            {
+                                string opendate = "";
+                                if (trade.OpenDate != null)
+                                {
+                                    opendate = ((DateTime) trade.OpenDate).ToLongDateString ();
+                                }
+                                string note = string.Format ("Trade {0} opened {1} is now profitable!!! {2:C2}", trade.Ticker, opendate, trade.TotalProfitLoss);
+
+                                trade.EmailBrian (note, new TimeSpan (1, 0, 0));
+                                //trade.EmailBrian (note, new TimeSpan (0, 5, 0));
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        /*************************************************************
+         * 
+         * Cell value in the Leg grid is changing
+         * 
+         * Do we need turn off data acquisition?
+         * 
+         * ***********************************************************/
+        
+        private void dgvLeg_CellValidating (object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            //if (e.RowIndex < 0)
+            //{
+            //    return;
+            //}
+            //LegData ld = (LegData) dgvLeg.Rows[e.RowIndex].DataBoundItem;
+            //if (ld == null)
+            //{
+            //    return;
+            //}
+            //if (!ld.bIfUpdatingMarketData)
+            //{
+            //    return;
+            //}
+            //if (ld.ConId == null)
+            //{
+            //    return;
+            //}
+
+            //if ( (e.ColumnIndex == legcolBUYSELL) ||
+            //     (e.ColumnIndex == legcolSTRIKE) ||
+            //     (e.ColumnIndex == legcolEXPIRES) ||
+            //     (e.ColumnIndex == legcolEQUITYTYPE) ||
+            //     (e.ColumnIndex == legcolTICKER))
+            //{
+            //    MessageBox.Show ("Data acquisition must be turned off before modifying this information.");
+            //    e.Cancel = true;
+            //}
+        }
+
+        /*************************************************************
+         * 
+         * Cell value in the Leg grid has changed
+         * 
+         * ***********************************************************/
+
+        private async void dgvLeg_CellValueChanged (object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
+            LegData leg = (LegData) dgvLeg.Rows[e.RowIndex].DataBoundItem;
+            if (leg == null)
+            {
+                //MessageBox.Show ("Problem in dgvLeg_CellValueChanged. The leg item is undefined. This is unexpected.");
+                return;
+            }
+
+            m_bLegRowDirtyFlag = true;
+
+            if (e.ColumnIndex == legcolBID || e.ColumnIndex == legcolASK)
+            {
+                if (dgvLeg.Rows[e.RowIndex].IsNewRow)
+                {
+                    return;
+                }
+                if (dgvTrade.CurrentRow.IsNewRow)
+                {
+                    MessageBox.Show ("The current trade line is not yet defined.");
+                    return;
+                }
+                leg.ComputeProfitFigures ();
+                leg.SignalTrade (legcolTOTALPROFIT);
+                leg.SignalTrade (legcolPERCENTPROFIT);
+            }
+
+            if (e.ColumnIndex == legcolCLOSEPRICE)
+            {
+                LegClosePrice (e.RowIndex);
+            }
+
+            if (e.ColumnIndex == legcolEXPIRES)
+            {
+                m_RememberDateExpires = (DateTime) dgvLeg.Rows[e.RowIndex].Cells[legcolEXPIRES].Value;
+
+                int TradingDays;
+                dgvLeg.Rows[e.RowIndex].Cells[legcolDAYSLEFT].Value = Utils.ComputeDaysToExpire (m_RememberDateExpires, out TradingDays);
+                dgvLeg.InvalidateCell (legcolDAYSLEFT, e.RowIndex);
+                leg.ConId = null;
+            }
+
+            if (e.ColumnIndex == legcolCALLPUT)
+            {
+                leg.ConId = null;
+
+            }
+
+            if (e.ColumnIndex == legcolBUYSELL)
+            {
+                leg.ConId = null;
+            }
+
+            if (e.ColumnIndex == legcolEQUITYTYPE)
+            {
+                leg.ConId = null;
+            }
+
+            if (e.ColumnIndex == legcolSTRIKE)
+            {
+                leg.ConId = null;
+            }
+
+            if (e.ColumnIndex == legcolOPENCLOSE)
+            {
+                if (dgvLeg.Rows[e.RowIndex].IsNewRow)
+                {
+                    return;
+                }
+                leg.ConId = null;
+                
+                if (dgvLeg.Rows[e.RowIndex].Cells[legcolOPENCLOSE].Value != null)
+                {
+                    OpenCloseValues oc = (OpenCloseValues) dgvLeg.Rows[e.RowIndex].Cells[legcolOPENCLOSE].Value;
+                    if (oc == OpenCloseValues.Open)
+                    {
+                        dgvLeg.Rows[e.RowIndex].Cells[legcolOPENDATE].Value = DateTime.Today;
+                    }
+                }
+            }
+
+            /* Try to fill in the  multiplier and the ConId
+             * --------------------------------------------
+             * if we don't already have it. */
+
+            //if (leg.ConId == null)
+            //{
+            //    try
+            //    {
+            //        ConIdMultiplier cm = await leg.FetchConIdMultiplier (e.RowIndex);
+            //        leg.ConId = cm.ConId;
+            //        leg.Multiplier = cm.Multiplier;
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        MessageBox.Show (ex.Message);
+            //    }
+            //}
+            
+            if (e.ColumnIndex == legcolOPENPRICE || e.ColumnIndex == legcolNOCONTRACTS || e.ColumnIndex == legcolOPENCLOSE)
+            {
+                leg.UpdatePremium (); // need multipler for this
+                leg.SignalTrade (legcolPREMIUM);
+            }
+
+            //if (e.ColumnIndex == legcolPREMIUM)
+            //{
+            //    if (dgvLeg.Rows[e.RowIndex].IsNewRow)
+            //    {
+            //        return;
+            //    }
+            //    if (dgvTrade.CurrentRow.IsNewRow)
+            //    {
+            //        return;
+            //    }
+            //    TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];
+            //    LegData leg = trade.m_Legs[dgvLeg.Rows[e.RowIndex].Index];
+            //    leg.UpdateField (legcolPREMIUM);
+            //}
+
+            //if (leg.ConId == null)
+            //{
+            //    try
+            //    {
+            //        ConIdMultiplier cm =  await leg.FetchConIdMultiplier (e.RowIndex);
+            //        leg.ConId = cm.ConId;
+            //        leg.Multiplier = cm.Multiplier;
+
+            //        if (leg.Id != null)
+            //        {
+            //            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            //            {
+            //                dc.UpdateConIdLeg (leg.Id, leg.ConId, leg.Multiplier);
+            //            }
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        MessageBox.Show (ex.Message);
+            //    }
+            //}
+        }
+
+        /***************************************************************
+         * 
+         * Close Current Leg
+         * 
+         * ************************************************************/
+
+        private void LegClosePrice (int index)
+        {
+            decimal ClosingPrice;
+            double fClosingPrice = -1;
+
+            DataGridViewRow row = dgvLeg.Rows[index];
+
+            if (row.Cells[legcolCLOSEPRICE].Value != null)
+            {
+                if (!decimal.TryParse (row.Cells[legcolCLOSEPRICE].Value.ToString (), out ClosingPrice))
+                {
+                    MessageBox.Show ("Need to specify a valid Closing Price first");
+                    return;
+                }
+                fClosingPrice = (double) ClosingPrice;
+            }
+
+            if (row.IsNewRow)
+            {
+                MessageBox.Show ("A valid leg needs to be selected.");
+                return;
+            }
+
+            LegData leg = (LegData) row.DataBoundItem;
+
+            if (fClosingPrice == -1)
+            {
+                leg.ClosePrice = null;
+                leg.OpenCloseStatus = OpenCloseValues.Open;
+                leg.ClosedDate = null;
+            }
+            else
+            {
+                leg.ClosePrice = fClosingPrice;
+                leg.ClosedDate = DateTime.Now;
+                leg.OpenCloseStatus = OpenCloseValues.Close;
+            }
+
+            leg.ComputeProfitFigures ();
+            hlLegProfitLoss (row, leg);
+            leg.SignalTrade (legcolTOTALPROFIT);
+            leg.SignalTrade (legcolPERCENTPROFIT);
+            leg.SignalTrade (legcolCLOSEDATE);
+
+            dgvLeg.InvalidateCell (legcolTOTALPROFIT, index);
+            dgvLeg.InvalidateCell (legcolPERCENTPROFIT, index);
+            dgvLeg.InvalidateCell (legcolCLOSEDATE, index);
+            dgvLeg.InvalidateCell (legcolOPENCLOSE, index);
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                dc.UpsertLeg (leg.Id, 
+                              leg.ConId,
+                              leg.Ticker,
+                              Utils.EquityType2String (leg.Equity), 
+                              leg.Multiplier, 
+                              (int) leg.OpenCloseStatus, 
+                              leg.IfCall,
+                              leg.IfSell, 
+                              leg.Strike, 
+                              leg.ExpiryDate, 
+                              leg.OpenPrice,
+                              leg.ClosePrice,
+                              leg.NoContracts, 
+                              leg.Commissions, 
+                              leg.OpenDate, 
+                              leg.ClosedDate, 
+                              leg.LastEmail, 
+                              leg.Trade_id);
+                dc.UpdateLegProfitLoss (leg.Id, (decimal?) leg.TotalProfitLoss, DateTime.Now, (decimal?) leg.DailyProfitLoss, DateTime.Now);
+            }
+
+        }
+
+ 
+        /***************************************************************
+         * 
+         * If there is a new trade, fill in the open date
+         * 
+         * ************************************************************/
+
+        private void dgvTrade_RowValidated (object sender, DataGridViewCellEventArgs e)
+        {
+            TradeData trade = (TradeData) dgvTrade.Rows[e.RowIndex].DataBoundItem;
+
+            if (trade != null)
+            {
+                if (trade.OpenDate == null)
+                {
+                    trade.OpenDate = DateTime.Now;
+                    dgvTrade.InvalidateCell (trdcolOPENDATE, e.RowIndex);
+                }
+            }
+        }
+
+        /***********************************************************************
+         * 
+         * Trade cell value validation
+         * 
+         * ********************************************************************/
+
+        private void dgvTrade_CellValidating (object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+            if (e.ColumnIndex == trdcolOPENCLOSE)
+            {
+                if (dgvTrade.CurrentRow.IsNewRow)
+                {
+                    return;
+                }
+
+                if ((string) dgvTrade.Rows[e.RowIndex].Cells[e.ColumnIndex].EditedFormattedValue != "Close")
+                {
+                    return;
+                }
+
+                TradeData t = m_Trades[dgvTrade.Rows[e.RowIndex].Index];
+
+                DialogResult rc = MessageBox.Show (string.Format ("Confirm that trade {0} is being closed.", t.Ticker), "Close Confirmation", MessageBoxButtons.OKCancel);
+                if (rc == DialogResult.OK)
+                {
+                    t.ClosedDate = DateTime.Now;
+                    dgvTrade.InvalidateCell (trdcolCLOSEDATE, e.RowIndex);
+
+                    return;
+                }
+                e.Cancel = true;
+            }
+        }
+
+        /*******************************************************************************************
+         * 
+         * Cell validated, so update database trade 
+         * 
+         * ****************************************************************************************/
+
+        private void dgvTrade_CellValueChanged (object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+            {
+                return;
+            }
+
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                return;
+            }
+
+            TradeData t = (TradeData) dgvTrade.Rows[e.RowIndex].DataBoundItem;
+            
+            /* Update Company, if ticker has changed
+             * ------------------------------------- */
+
+            if (e.ColumnIndex == trdcolTICKER && t != null)
+            {
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    var stock = (from s in dc.Stocks
+                                 where s.Ticker == t.Ticker
+                                 select new { s.LastTrade, s.Company }
+                                ).SingleOrDefault ();
+
+                    if (stock == null)
+                    {
+                        MessageBox.Show (string.Format ("The ticker {0} does not exist in the database. Please fix.", t.Ticker));
+                        return;
+                    }
+                    t.Company = stock.Company;
+                    t.UnderlyingPrice = (double?) stock.LastTrade;
+                }
+
+            }
+
+            //if (e.ColumnIndex == trdcolOPENCLOSE)
+            {
+
+                if (t.Id != null)
+                {
+                    using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                    {
+                        dc.UpdateTrade (t.Id, t.TradeType, t.Ticker, (int) t.OpenCloseStatus, t.Premium, t.Commissions, t.OpenDate, t.ClosedDate, t.TotalDelta, t.TotalTheta, (decimal?) t.TotalProfitLoss, (decimal?) t.ProfitThreshold, t.EmailNotifications, t.Notes, t.LastEmail);
+                    }
+                }
+                else
+                {
+                    using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                    {
+                        InsertTradeResult tr =
+                            dc.InsertTrade (t.Id, 
+                                            m_DataGroupName,
+                                            t.TradeType, 
+                                            t.Ticker, 
+                                            (int) t.OpenCloseStatus, 
+                                            t.Premium, 
+                                            t.Commissions, 
+                                            t.OpenDate, 
+                                            t.ClosedDate, 
+                                            t.TotalDelta, 
+                                            t.TotalTheta, 
+                                            (decimal?) t.TotalProfitLoss, 
+                                            (decimal?) t.ProfitThreshold, 
+                                            t.EmailNotifications, 
+                                            t.Notes, 
+                                            t.LastEmail).Single ();
+                        t.Id = tr.TradeId;
+                    }
+                }
+            }
+        }
+
+        /***************************************************************
+         * 
+         * Entered into a new leg row
+         * 
+         * ************************************************************/
+
+        private void dgvLeg_RowEnter (object sender, DataGridViewCellEventArgs e)
+        {
+            m_Log.Log (ErrorLevel.logDEB, string.Format ("dgvLeg_RowEnter rowindex {0}", e.RowIndex));
+
+            m_bLegRowDirtyFlag = false;
+
+            if (!gbLegNotifications.Visible)
+            {
+                return;
+            }
+
+            m_bLegProfitThresholdDirty = false;
+
+            if (dgvTrade.CurrentRow == null)
+            {
+                return;
+            }
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                return;
+            }
+
+            TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];
+
+            double? pt = trade.m_Legs[e.RowIndex].ProfitThreshold;
+            if (pt == null)
+            {
+                tbLegProfitThreshold.Text = "";
+            }
+            else
+            {
+                tbLegProfitThreshold.Text = ((double) trade.m_Legs[e.RowIndex].ProfitThreshold).ToString ("C2");
+            }
+
+            m_Log.Log (ErrorLevel.logDEB, string.Format ("dgvLeg_RowEnter rowindex {0}, ticker {2} emailnotifications {1}", e.RowIndex, trade.m_Legs[e.RowIndex].EmailNotifications, trade.m_Legs[e.RowIndex].Ticker));
+
+            ShowLegEmailNotifications (trade.m_Legs[e.RowIndex].EmailNotifications);
+        }
+
+        /***********************************************************
+         * 
+         * When dgvLeg has focus
+         * 
+         * ********************************************************/
+
+        private void dgvLeg_Enter (object sender, EventArgs e)
+        {
+            gbLegNotifications.Visible = true;
+        }
+
+        /***********************************************************
+        * 
+        * When dgvTrade has focus
+        * 
+        * ********************************************************/
+        private void dgvTrade_Enter (object sender, EventArgs e)
+        {
+            gbLegNotifications.Visible = false;
+        }
+
+        /***********************************************************
+         * 
+         * Validating the row
+         * 
+         * ********************************************************/
+
+        private async void dgvLeg_RowValidating (object sender, DataGridViewCellCancelEventArgs e)
+        {
+            DataGridViewRow row = dgvLeg.Rows[e.RowIndex];
+            //if (row.IsNewRow)
+            //{
+            //    return;
+            //}
+
+            LegData ld = (LegData) dgvLeg.Rows[e.RowIndex].DataBoundItem;
+
+            if (ld == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty (ld.Ticker))
+            {
+                MessageBox.Show ("Invalid ticker specified.");
+                e.Cancel = true;
+                return;
+            }
+//            if (((double?) row.Cells[legcolSTRIKE].Value) == null)
+            if (ld.Strike == null)
+            {
+                MessageBox.Show ("Missing strike.");
+                e.Cancel = true;
+                return;
+            }
+            //if (((double) row.Cells[legcolSTRIKE].Value) <= 0)
+            if (ld.Strike <= 0)
+            {
+                MessageBox.Show ("Illegal strike specified.");
+                e.Cancel = true;
+                return;
+            }
+            if (ld.ExpiryDate == null)
+            //if (string.IsNullOrWhiteSpace (row.Cells[legcolEXPIRES].Value.ToString ()))// problem with this line
+            {
+                MessageBox.Show ("Missing expiry date.");
+                e.Cancel = true;
+                return;
+            }
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                var leg = (from s in dc.Stocks
+                           where s.Ticker == row.Cells[legcolTICKER].Value.ToString ()
+                           select new { s.Ticker, s.LastTrade }
+                          ).SingleOrDefault ();
+
+                if (leg == null)
+                {
+                    MessageBox.Show (string.Format ("ERROR!! Ticker {0} is not in the database.", row.Cells[legcolTICKER].Value.ToString ()));
+                    e.Cancel = true;
+                    return;
+                }
+            }
+
+            /* See if this a valid stock/option
+             * -------------------------------- */
+
+            if (ld.ConId == null)
+            {
+                try
+                {
+                    ConIdMultiplier cm = await ld.FetchConIdMultiplier (e.RowIndex);
+                    ld.ConId = cm.ConId;
+                    ld.Multiplier = cm.Multiplier;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show (ex.Message);
+                    e.Cancel = true;
+                }
+            }
+        }
+
+        /********************************************************************
+         * 
+         * RowValidated
+         * 
+         * *****************************************************************/
+
+        private void dgvLeg_RowValidated (object sender, DataGridViewCellEventArgs e)
+        {
+            if (m_bLegRowDirtyFlag)
+            {
+                UpdateTrade ();
+            }
+        }
+
+        /******************************************************************
+         * 
+         * Assign default values to the leg when needed
+         * 
+         * ***************************************************************/
+
+        private void dgvLeg_DefaultValuesNeeded (object sender, DataGridViewRowEventArgs e)
+        {
+            DateTime dt = m_RememberDateExpires;
+            e.Row.Cells[legcolEXPIRES].Value = m_RememberDateExpires; // this changes m_RememberDateExpires which we don't intend
+            int TradingDays;
+            e.Row.Cells[legcolDAYSLEFT].Value = Utils.ComputeDaysToExpire (dt, out TradingDays);
+            m_RememberDateExpires = dt; // reset it.
+
+            if (dgvTrade.CurrentRow != null)
+            {
+                e.Row.Cells[legcolTICKER].Value = dgvTrade.CurrentRow.Cells[trdcolTICKER].Value;
+            }
+        }
+
+         /**********************************************************************
+         * 
+         * Close Trade
+         * 
+         * *******************************************************************/
+
+        private void btnCloseTrade_Click (object sender, EventArgs e)
+        {
+            //if (cbActivateAll.Checked || cbActivateSelected.Checked)
+            //{
+            //    MessageBox.Show ("Turn off data collection before closing trade.");
+            //    return;
+            //}
+            
+            List<LegData> Legs = new List<LegData> ();
+
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                MessageBox.Show ("Need to update the trade first.");
+                return;
+            }
+
+            TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];
+
+            if (dgvLeg.SelectedRows.Count > 0)
+            {
+                foreach (DataGridViewRow row in dgvLeg.SelectedRows)
+                {
+                    LegData leg = (LegData) row.DataBoundItem;
+                    if (leg != null)
+                    {
+                        Legs.Add ((LegData) row.DataBoundItem);
+                    }
+                }
+            }
+            else
+            {
+                foreach (DataGridViewRow row in dgvLeg.Rows)
+                {
+                    LegData leg = (LegData) row.DataBoundItem;
+                    if (leg != null)
+                    {
+                        Legs.Add ((LegData) row.DataBoundItem);
+                    }
+                }
+            }
+
+            if (Legs.Count <= 0)
+            {
+                MessageBox.Show ("Nothing to close!");
+                return;
+            }
+
+            using (frmCloseTrade frmCloseTrade = new frmCloseTrade (this, m_Log, axTws, Legs))
+            {
+                DialogResult rc = frmCloseTrade.ShowDialog (this);
+                if (rc == DialogResult.OK)
+                {
+                    /* Persist the leg order id's
+                     * -------------------------- */
+
+                    using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                    {
+                        foreach (LegData leg in Legs)
+                        {
+                            dc.UpdateLegOrderId (leg.Id, leg.OpenOrderId, leg.CloseOrderId);
+                        }
+                    }
+                }
+            }
+        }
+
+        /*************************************************************************
+         * 
+         * Commissions
+         * 
+         * **********************************************************************/
+
+        private void btnCommissions_Click (object sender, EventArgs e)
+        {
+            axTws.reqAllOpenOrders ();
+        }
+
+        /*************************************************************************
+         * 
+         * OpenOrderEx event
+         * 
+         * **********************************************************************/
+
+        private void axTws_openOrderEx (object sender, AxTWSLib._DTwsEvents_openOrderExEvent e)
+        {
+            TWSLib.IContract con = e.contract;
+            TWSLib.IOrderState ord = e.orderState;
+
+            double? commission = null;
+            double? mincommission = null;
+            double? maxcommission = null;
+
+            if (ord.commission < double.MaxValue)
+            {
+                commission = ord.commission;
+            }
+            if (ord.minCommission < double.MaxValue)
+            {
+                mincommission = ord.minCommission;
+            }
+            if (ord.maxCommission < double.MaxValue)
+            {
+                maxcommission = ord.maxCommission;
+            }
+
+            m_Log.Log (ErrorLevel.logINF, string.Format ("symbol: {0} localsymbol {1} status: {2} commission {3} min commission: {4}, max commission: {5}", 
+                con.symbol, 
+                con.localSymbol,
+                ord.status, 
+                commission == null ? "INVALID" : ord.commission.ToString ("F3"),
+                mincommission == null ? "INVALID" : ord.minCommission.ToString ("F3"),
+                maxcommission == null ? "INVALID" : ord.maxCommission.ToString ("F3")));
+            
+            if (ord.status != "PreSubmitted")
+            {
+                using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                {
+                    dc.UpsertOrder (e.orderId,
+                                    DateTime.Now,
+                                    commission,
+                                    mincommission,
+                                    maxcommission,
+                                    ord.status);
+                }
+            }
+        }
+
+        /**********************************************************************
+         * 
+         * Executions button
+         * 
+         * *******************************************************************/
+
+        private void btnExecutions_Click (object sender, EventArgs e)
+        {
+            if (dgvLeg.SelectedRows.Count <= 0)
+            {
+                MessageBox.Show ("Select one or more legs to pull in execution");
+                return;
+            }
+
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                MessageBox.Show ("Need to update the trade first.");
+                return;
+            }
+
+            TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];    
+           
+            foreach (DataGridViewRow row in dgvLeg.SelectedRows)
+            {
+                LegData leg = trade.m_Legs[row.Index];
+
+                TWSLib.IExecutionFilter f = axTws.createExecutionFilter ();
+                f.secType = "OPT";
+                f.symbol = leg.Ticker;
+                f.side = leg.IfSell ? "SELL" : "BUY";
+
+                m_Log.Log (ErrorLevel.logINF, string.Format ("calling reqExecutionsEx. reqId {0}", row.Index));
+                axTws.reqExecutionsEx (row.Index, f);
+            }      
+        }
+
+        /***************************************************************************
+         * 
+         * exeDetailsEx 
+         * 
+         * ************************************************************************/
+
+        private void axTws_execDetailsEx (object sender, AxTWSLib._DTwsEvents_execDetailsExEvent e)
+        {
+            TWSLib.IContract con = e.contract;
+            TWSLib.IExecution x = e.execution;
+
+            m_Log.Log (ErrorLevel.logINF, string.Format ("symbol: {0} localsymbol {1}", con.symbol, con.localSymbol));
+           // m_Log.Log (ErrorLevel.logINF, string.Format ("commission: {0:F3", ord.commission));
+
+        }
+
+        private void axTws_execDetailsEnd (object sender, AxTWSLib._DTwsEvents_execDetailsEndEvent e)
+        {
+            m_Log.Log (ErrorLevel.logINF, string.Format ("execDetailsEnd called. reqId {0}", e.reqId));
+        }
+
+        /*********************************************************************
+         * 
+         * Best Strangle
+         * 
+         * ******************************************************************/
+
+        private void btnBestStrangle_Click (object sender, EventArgs e)
+        {
+            string ticker = dgvTrade.CurrentRow.Cells[trdcolTICKER].Value.ToString ();
+
+            using (frmBestStrangle f = new frmBestStrangle (ticker, this, m_Log, axTws))
+            {
+                DialogResult res = f.ShowDialog (this);
+                if (res == DialogResult.OK)
+                {
+                    TradeData trade = (TradeData) dgvTrade.CurrentRow.DataBoundItem;
+                    if (trade != null)
+                    {
+                        foreach (OptionInfo opt in f.OptionList)
+                        {
+                            trade.m_Legs.Add (new LegData (null,
+                                                           opt.Ticker,
+                                                           EquityType.Option,
+                                                           100, 
+                                                           opt.LocalSymbol, 
+                                                           opt.ConId, 
+                                                           OpenCloseValues.Pending, 
+                                                           opt.IfCall, 
+                                                           opt.IfSell, 
+                                                           (decimal) opt.Strike, 
+                                                           opt.Expiry,
+                                                           null,
+                                                           null, 
+                                                           null, 
+                                                           opt.NoContracts, 
+                                                           null, null, null, null, // greeks
+                                                           null, null, null, null, null, null, null, null, null, null, 
+                                                           0,
+                                                           null));
+                        }
+                    }
+                }
+            }
+        }
+
+        /*************************************************************
+         * 
+         * Open Trade
+         * 
+         * **********************************************************/
+
+        private void btnOpenTrade_Click (object sender, EventArgs e)
+        {
+            if (cbActivateAll.Checked || cbActivateSelected.Checked)
+            {
+                MessageBox.Show ("Turn off data collection before closing trade.");
+                return;
+            }
+            List<LegData> Legs = new List<LegData> ();
+
+            if (dgvTrade.CurrentRow.IsNewRow)
+            {
+                MessageBox.Show ("Need to update the trade first.");
+                return;
+            }
+
+            TradeData trade = m_Trades[dgvTrade.CurrentRow.Index];
+
+            if (dgvLeg.SelectedRows.Count > 0)
+            {
+                foreach (DataGridViewRow row in dgvLeg.SelectedRows)
+                {
+                    LegData leg = (LegData) row.DataBoundItem;
+                    if (leg != null)
+                    {
+                        Legs.Add ((LegData) row.DataBoundItem);
+                    }
+                }
+            }
+            else
+            {
+                foreach (DataGridViewRow row in dgvLeg.Rows)
+                {
+                    LegData leg = (LegData) row.DataBoundItem;
+                    if (leg != null)
+                    {
+                        Legs.Add ((LegData) row.DataBoundItem);
+                    }
+                }
+            }
+
+            if (Legs.Count <= 0)
+            {
+                MessageBox.Show ("Nothing to open!");
+                return;
+            }
+
+            using (frmOpenTrade frmOpenTrade = new frmOpenTrade (this, m_Log, axTws, Legs))
+            {
+                DialogResult rc = frmOpenTrade.ShowDialog (this);
+                if (rc == DialogResult.OK)
+                {
+                    /* Persist the leg order id's
+                     * -------------------------- */
+
+                    using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+                    {
+                        foreach (LegData leg in Legs)
+                        {
+                            dc.UpdateLegOrderId (leg.Id, leg.OpenOrderId, leg.CloseOrderId);
+                        }
+                    }
+                }
+            }
+        }
+
+        /**************************************************************
+         * 
+         * Reset ConId for selected legs
+         * 
+         * ***********************************************************/
+
+        private async void btnResetConId_Click (object sender, EventArgs e)
+        {
+            if (dgvLeg.SelectedRows.Count == 0)
+            {
+                MessageBox.Show ("Must select a leg to reset.");
+                return;
+            }
+
+            List<Task<ConIdMultiplier>> tasks = new List<Task<ConIdMultiplier>> ();
+            int ctr = 0;
+            foreach (DataGridViewRow row in dgvLeg.SelectedRows)
+            {
+                LegData leg = (LegData) row.DataBoundItem;
+                if (leg != null)
+                {
+                    tasks.Add (leg.FetchConIdMultiplier (ctr++));
+                }
+            }
+            ConIdMultiplier[] conids = await Task.WhenAll (tasks);
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                int ctr2 = 0;
+                foreach (DataGridViewRow row in dgvLeg.SelectedRows)
+                {
+                    LegData leg = (LegData) row.DataBoundItem;
+                    leg.ConId = conids[ctr2].ConId;
+                    leg.Multiplier = conids[ctr2++].Multiplier;
+                    dc.UpdateConIdLeg (leg.Id, leg.ConId, leg.Multiplier);
+                }
+            }
+
+            MessageBox.Show ("ConId's reset for selected legs.");
+        }
+
+        /***********************************************************
+         * 
+         * recomputeToolStripMenuItem clicked
+         * 
+         * ********************************************************/
+
+        private void recomputeToolStripMenuItem_Click (object sender, EventArgs e)
+        {
+            TradeData t = (TradeData) dgvTrade.Rows[m_MouseLocation.RowIndex].DataBoundItem;
+
+            t.ComputePremium ();
+
+            dgvTrade.InvalidateCell (m_MouseLocation.ColumnIndex, m_MouseLocation.RowIndex);
+
+            using (dbOptionsDataContext dc = new dbOptionsDataContext ())
+            {
+                dc.UpdateTrade (t.Id, t.TradeType, t.Ticker, (int) t.OpenCloseStatus, t.Premium, t.Commissions, t.OpenDate, t.ClosedDate, t.TotalDelta, t.TotalTheta, (decimal?) t.TotalProfitLoss, (decimal?) t.ProfitThreshold, t.EmailNotifications, t.Notes, t.LastEmail);
+            }
+        }
+
+        /**********************************************************
+         * 
+         * track the mouse when it enters a trade cell
+         * 
+         * *******************************************************/
+
+        private DataGridViewCellMouseEventArgs m_MouseLocation;
+        private bool m_bConnectFailure;
+
+        private void dgvTrade_CellMouseDown (object sender, DataGridViewCellMouseEventArgs e)
+        {
+            m_MouseLocation = e;
+        }
+
+ 
+        /**************************************************************
+         * 
+         * Size of form has changed
+         * 
+         * ***********************************************************/
+
+        private void frmPos_SizeChanged (object sender, EventArgs e)
+        {
+            if (bSettingWidthsToBeSaved)
+            {
+                m_szForm = this.Size;
+            }
+        }
+
+
+    }
+}
